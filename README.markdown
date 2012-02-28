@@ -1,23 +1,26 @@
-DESCRIPTION
+Description
 ===========
 
 **testcookie-nginx-module** is a simple robot mitigation module using cookie based challenge/response.
+
 Challenge cookies can be set using different methods:
+
 *   "Set-Cookie" + 301 HTTP Location redirect
 *   "Set-Cookie" + HTML meta refresh redirect
 *   Custom template, JavaScript can be used here.
-To prevent automatic parsing, challenge cookie value can
-be encrypted with AES-128 in CBC mode using custom/random key and iv,
-and then decrypted at client side with JavaScript.
+
+To prevent automatic parsing, challenge cookie value can be encrypted with AES-128 in CBC mode using custom/random key and iv, and then decrypted at client side with JavaScript.
 
 
-DIRECTIVES
+Directives
 ==========
 
 testcookie
 ----------
 **syntax:** *testcookie (on|off);*
+
 **default:** *off*
+
 **context:** *http, server, location*
 
 Enable/disable module.
@@ -25,7 +28,9 @@ Enable/disable module.
 testcookie_name
 ---------------
 **syntax:** *testcookie_name &lt;string&gt;*
+
 **default:** *TCK*
+
 **context:** *http, server, location*
 
 Sets cookie name.
@@ -33,7 +38,9 @@ Sets cookie name.
 testcookie_domain
 -----------------
 **syntax:** *testcookie_domain &lt;string&gt;*
+
 **default:** *none, set by browser*
+
 **context:** *http, server, location*
 
 Sets cookie domain.
@@ -42,7 +49,9 @@ Sets cookie domain.
 testcookie_expires
 ------------------
 **syntax:** *testcookie_expires &lt;string&gt;*
+
 **default:** *31 Dec 2037 23:55:55 GMT*
+
 **context:** *http, server, location*
 
 Sets cookie expiration value.
@@ -50,7 +59,9 @@ Sets cookie expiration value.
 testcookie_path
 ---------------
 **syntax:** *testcookie_path &lt;string&gt;*
+
 **default:** */*
+
 **context:** *http, server, location*
 
 Sets cookie path, useful if you plan to use different keys for locations.
@@ -58,7 +69,9 @@ Sets cookie path, useful if you plan to use different keys for locations.
 testcookie_secret
 -----------------
 **syntax:** *testcookie_secret &lt;string&gt;*
+
 **default:** *none*
+
 **context:** *http, server, location*
 
 Secret string, used in challenge cookie computation, better to be long but static to prevent cookie reset for legitimate users every server restart.
@@ -68,7 +81,9 @@ If not set, only value based on testcookie_session will be used.
 testcookie_session
 ------------------
 **syntax:** *testcookie_session &lt;variable&gt;*
+
 **default:** *required configuration directive*
+
 **context:** *http, server, location*
 
 Sets the challenge generation function input,
@@ -78,7 +93,9 @@ Sets the challenge generation function input,
 testcookie_arg
 --------------
 **syntax:** *testcookie_arg &lt;string&gt;*
+
 **default:** *attempt*
+
 **context:** *http, server, location*
 
 Sets GET parameter name, used for cookie setting attempts computation
@@ -86,7 +103,9 @@ Sets GET parameter name, used for cookie setting attempts computation
 testcookie_max_attempts
 -----------------------
 **syntax:** *testcookie_max_attempts &lt;integer&gt;*
+
 **default:** *5*
+
 **context:** *http, server, location*
 
 Sets maximum number of redirects before user will be sent to fallback URL, according to RFC1945 can't be more than 5.
@@ -94,7 +113,9 @@ Sets maximum number of redirects before user will be sent to fallback URL, accor
 testcookie_p3p
 --------------
 **syntax:** *testcookie_p3p &lt;string&gt;*
+
 **default:** *none*
+
 **context:** *http, server, location*
 
 Sets P3P policy.
@@ -102,7 +123,9 @@ Sets P3P policy.
 testcookie_fallback
 -------------------
 **syntax:** *testcookie_fallback &lt;script&gt;*
+
 **default:** *none*
+
 **context:** *http, server, location*
 
 Sets the fallback URL, user will be redirected to after maximum number of attempts, specified by directive *testcookie_max_attempts exceded*.
@@ -111,7 +134,9 @@ Nginx scripting variables can be used here. If not set - client will get 403 aft
 testcookie_whitelist
 --------------------
 **syntax:** *testcookie_whitelist &lt;network list&gt;*
+
 **default:** *none*
+
 **context:** *http, server, location*
 
 Sets the networks for which the testing will not be used, add search engine networks here. Currently IPv4 CIDR only.
@@ -119,7 +144,9 @@ Sets the networks for which the testing will not be used, add search engine netw
 testcookie_redirect_via_refresh
 -------------------------------
 **syntax:** *testcookie_redirect_via_refresh (on|off);*
+
 **default:** *off*
+
 **context:** *http, server, location*
 
 Set cookie and redirect using HTTP meta refresh, required if *testcookie_refresh_template* used.
@@ -127,27 +154,31 @@ Set cookie and redirect using HTTP meta refresh, required if *testcookie_refresh
 testcookie_refresh_template
 ---------------------------
 **syntax:** *testcookie_refresh_template &lt;string&gt;*
+
 **default:** *none*
+
 **context:** *http, server, location*
 
 Use custom html instead of simple HTTP meta refresh, you need to set cookie manually from the template
 Available all the nginx variables and
 
-    *$testcookie_nexturl* - URL the client should be redirected to, if max_attempts exceeded *testcookie_fallback* value will be here
-    *$testcookie_uid_got* - cookie value received from client, empty if no cookie or it does not match format
-    *$testcookie_uid_set* - correct cookie value we're expecting from client
-    *$testcookie_ok* - user passed test (yes/no)
+    $testcookie_nexturl - URL the client should be redirected to, if max_attempts exceeded *testcookie_fallback* value will be here
+    $testcookie_uid_got - cookie value received from client, empty if no cookie or it does not match format
+    $testcookie_uid_set - correct cookie value we're expecting from client
+    $testcookie_ok - user passed test (yes/no)
 
 also, if testcookie_refresh_encrypt_cookie enabled there are three more variables:
 
-    *$testcookie_enc_key* - encryption key (32 hex digits)
-    *$testcookie_enc_iv* - encryption iv (32 hex digits)
-    *$testcookie_enc_sec* - encrypted cookie value (32 hex digits)
+    $testcookie_enc_key - encryption key (32 hex digits)
+    $testcookie_enc_iv - encryption iv (32 hex digits)
+    $testcookie_enc_sec - encrypted cookie value (32 hex digits)
 
 testcookie_deny_keepalive
 -------------------------
 **syntax:** *testcookie_deny_keepalive (on|off);*
+
 **default:** *off*
+
 **context:** *http, server, location*
 
 Close connection just after setting the cookie, no reason to keep connections with bots.
@@ -155,7 +186,9 @@ Close connection just after setting the cookie, no reason to keep connections wi
 testcookie_get_only
 -------------------
 **syntax:** *testcookie_get_only (on|off);*
+
 **default:** *off*
+
 **context:** *http, server, location*
 
 Process only GET requests, POST requests will be bypassed.
@@ -163,7 +196,9 @@ Process only GET requests, POST requests will be bypassed.
 testcookie_https_location
 -------------------------
 **syntax:** *testcookie_https_location (on|off);*
+
 **default:** *off*
+
 **context:** *http, server, location*
 
 Redirect client to https protocol after setting the cookie, also affects *$testcookie_nexturl*, useful with 3dparty SSL offload.
@@ -171,7 +206,9 @@ Redirect client to https protocol after setting the cookie, also affects *$testc
 testcookie_refresh_encrypt_cookie
 ---------------------------------
 **syntax:** *testcookie_refresh_encrypt_cookie (on|off);*
+
 **default:** *off*
+
 **context:** *http, server, location*
 
 Encrypt cookie variable, used with *testcookie_refresh_template* to force client-side decryption with AES-128 CBC.
@@ -179,32 +216,37 @@ Encrypt cookie variable, used with *testcookie_refresh_template* to force client
 testcookie_refresh_encrypt_cookie_key
 -------------------------------------
 **syntax:** *testcookie_refresh_encrypt_cookie_key &lt;32 hex digits|random&gt;*
+
 **default:** *required directive if encryption enabled*
+
 **context:** *http, server, location*
 
 Sets encryption key.
+
 Possible values:
-    *random* - new key generated every nginx restart
-    *32 hex digits* - static key, useful if you plan to obfuscate it deep in client-side javascript.
+
+    random - new key generated every nginx restart
+    32 hex digits - static key, useful if you plan to obfuscate it deep in client-side javascript.
 
 testcookie_refresh_encrypt_iv
 -----------------------------
 **syntax:** *testcookie_refresh_encrypt_iv &lt;32 hex digits|random|random2&gt;*
+
 **default:** *random*
+
 **context:** *http, server, location*
 
 Sets encryption iv.
-Possible values:
-    *random* - new iv generated for every client request
-    *random2* - new iv generated for every nginx restart
-    *32 hex digits* - static iv, useful if you plan to obfuscate it deep in client-side javascript
 
-INSTALLATION
+Possible values:
+    random - new iv generated for every client request
+    random2 - new iv generated for every nginx restart
+    32 hex digits - static iv, useful if you plan to obfuscate it deep in client-side javascript
+
+Installation
 ============
 
-Grab the nginx source code from [nginx.org](http://nginx.org/), for
-example, the version 1.1.15 (see nginx compatibility), and then build
-the source with this module:
+Grab the nginx source code from [nginx.org](http://nginx.org/), for example, the version 1.1.15 (see nginx compatibility), and then build the source with this module:
 
     wget 'http://nginx.org/download/nginx-1.1.15.tar.gz'
     tar -xzvf nginx-1.1.15.tar.gz
@@ -214,16 +256,14 @@ the source with this module:
     make
     make install
 
-For using client-side cookie decryption,
-you need to manually grab [SlowAES](http://code.google.com/p/slowaes/)
-JavaScript AES implementation and put it to document root.
+For using client-side cookie decryption, you need to manually grab [SlowAES](http://code.google.com/p/slowaes/) JavaScript AES implementation and put it to document root.
 
-COMPATIBILITY
+Compatibility
 =============
 
 Module was tested with nginx 1.1+, but should work with 1.0+.
 
-EXAMPLE CONFIGURATION
+Example configuration
 =====================
 
     http {
@@ -299,17 +339,17 @@ EXAMPLE CONFIGURATION
         }
     }
 
-TESTS SUITE
+See more cases in "docs" directory of the project.
+
+Test suite
 ===========
 
-This module comes with a Perl-driven test suite.
-Thanks to the [Test::Nginx](http://search.cpan.org/perldoc?Test::Nginx) module in the Perl world.
+This module comes with a Perl-driven test suite. Thanks to the [Test::Nginx](http://search.cpan.org/perldoc?Test::Nginx) module in the Perl world.
 
-SOURCES
+Sources
 =======
 
-Available on github at [kyprizel/testcookie-nginx-module]
-(http://github.com/kyprizel/testcookie-nginx-module).
+Available on github at [kyprizel/testcookie-nginx-module](http://github.com/kyprizel/testcookie-nginx-module).
 
 TODO
 ====
@@ -318,13 +358,13 @@ TODO
 *   IPv6 whitelisting
 *   More encryption algos (?)
 
-BUGS
+Bugs
 ====
 
 Feel free to report bugs and send patches to kyprizel@gmail.com
 or using [github's issue tracker](http://github.com/kyprizel/testcookie-nginx-module/issues).
 
-COPYRIGHT & LICENSE
+Copyright & License
 ===================
 
 Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
