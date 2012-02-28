@@ -1,0 +1,264 @@
+DESCRIPTION
+
+    testcookie-nginx-module is a simple robot mitigation module using cookie based challenge/response.
+    Challenge cookies can be set using different methods:
+    *   "Set-Cookie" + 301 HTTP Location redirect
+    *   "Set-Cookie" + HTML meta refresh redirect
+    *   Custom template, JavaScript can be used here.
+    To prevent automatic parsing, challenge cookie value can
+    be encrypted with AES-128 in CBC mode using custom/random key and iv,
+    and then decrypted at client side with JavaScript.
+
+
+DIRECTIVES
+
+    testcookie
+        enable/disable module (on|off)
+
+    testcookie_name
+        cookie name, default is TCK
+
+    testcookie_domain
+        cookie domain, default is none, set by browser
+
+    testcookie_expires
+        cookie expiration value, default 31 Dec 2037 23:55:55 GMT
+
+    testcookie_path
+        cookie path, useful if you plan to use different keys for locations. default is /
+
+    testcookie_secret
+        secret string, used in challenge cookie computation,
+        better to be long but static to prevent cookie reset for legitimate users every server restart.
+        if set to "random" - new secret will be generated every server restart, not recomended(all cookies with previous key will be invalid),
+        if not set, only value based on testcookie_session will be used.
+
+    testcookie_session
+        sets the challenge generation function input,
+            $remote_addr - clients IP address will be used as an user unique identifier
+            $remote_addr$http_user_agent - clients IP + User-Agent
+        * required configuration directive
+
+    testcookie_arg
+        GET parameter name, used for cookie setting attempts computation
+        if not set - argument name "attempt" used.
+
+    testcookie_max_attempts
+        maximum number of redirects before user will be sent to fallback URL,
+        according to RFC1945 can't be more than 5.
+
+    testcookie_p3p
+        P3P policy, default is none.
+
+    testcookie_fallback
+        sets the fallback URL, user will be redirected to after maximum number of attempts, specified by directive
+        testcookie_max_attempts exceded. nginx scripting variables can be used here.
+        if not set - client will get 403 after max attempts reached.
+
+    testcookie_whitelist
+        sets the networks for which the testing will not be used, add search engine networks here
+        currently IPv4 CIDR only.
+
+    testcookie_redirect_via_refresh
+        set cookie and redirect using HTTP meta refresh, required if testcookie_refresh_template used (on|off)
+        default is off.
+
+    testcookie_refresh_template
+        custom html instead of simple HTTP meta refresh, you need to set cookie manually from the template
+        available all the nginx variables and
+
+            $testcookie_nexturl - URL the client should be redirected to
+            $testcookie_uid_got - cookie value received from client, empty if no cookie or it does not match format
+            $testcookie_uid_set - correct cookie value we're expecting from client
+            $testcookie_ok - user passed test (yes/no)
+
+        also, if testcookie_refresh_encrypt_cookie enabled there are three more variables
+            $testcookie_enc_key - encryption key (32 hex digits)
+            $testcookie_enc_iv - encryption iv (32 hex digits)
+            $testcookie_enc_sec - encrypted cookie value (32 hex digits)
+
+    testcookie_deny_keepalive
+        close connection just after setting the cookie, no reason to keep connections with bots (on|off)
+        default is off.
+
+    testcookie_get_only
+        process only GET requests, POST requests will be bypassed (on|off)
+        default is off.
+
+    testcookie_https_location
+        redirect to https protocol after setting the cookie, also affects $testcookie_nexturl
+        useful with 3dparty SSL offload (on|off)
+        default is off.
+
+    testcookie_refresh_encrypt_cookie
+        encrypt cookie variable, used with testcookie_refresh_template to force client-side decryption
+        AES-128 CBC mode used (on|off)
+        default is off.
+
+    testcookie_refresh_encrypt_cookie_key
+        encryption key
+        possible values:
+                random - new key generated every nginx restart
+                32 hex digits - static key, useful if you plan to obfuscate it deep in client-side javascript
+        * required directive if encryption enabled
+
+    testcookie_refresh_encrypt_iv
+        encryption iv
+        possible values:
+                random - new iv generated for every client request
+                random2 - new iv generated for every nginx restart
+                32 hex digits - static iv, useful if you plan to obfuscate it deep in client-side javascript
+        default is random
+
+INSTALLATION
+
+    Grab the nginx source code from nginx.org (<http://nginx.org/>), for
+    example, the version 1.1.15 (see nginx compatibility), and then build
+    the source with this module:
+
+        wget 'http://nginx.org/download/nginx-1.1.15.tar.gz'
+        tar -xzvf nginx-1.1.15.tar.gz
+        cd nginx-1.1.15/
+        ./configure --add-module=/path/to/testcookie-nginx-module
+
+        make
+        make install
+
+    For using client-side cookie decryption,
+    you need to manually grab SlowAES (<http://code.google.com/p/slowaes/>)
+    JavaScript AES implementation and put it to document root.
+
+COMPATIBILITY
+
+    Module was tested with nginx 1.1+, but should work with 1.0+.
+
+EXAMPLE CONFIGURATION
+
+    http {
+        #default config, module disabled
+        testcookie off;
+
+        #setting cookie name
+        testcookie_name BPC;
+
+        #setting secret
+        testcookie_secret keepmesecret;
+
+        #setting session key
+        testcookie_session $remote_addr;
+
+        #setting argument name
+        testcookie_arg ckattempt;
+
+        #setting maximum number of cookie setting attempts
+        testcookie_max_attempts 3;
+
+        #setting p3p policy
+        testcookie_p3p 'CP="CUR ADM OUR NOR STA NID", policyref="/w3c/p3p.xml"';
+
+        #setting fallback url
+        testcookie_fallback http://google.com/cookies.html?backurl=http://$host$request_uri;
+
+        #configuring whitelist
+        testcookie_whitelist {
+            8.8.8.8/32;
+        }
+
+
+        #setting redirect via html code
+        testcookie_redirect_via_refresh on;
+
+        #enable encryption
+        testcookie_refresh_encrypt_cookie on;
+
+        #setting encryption key
+        testcookie_refresh_encrypt_cookie_key deadbeefdeadbeefdeadbeefdeadbeef;
+
+        #setting encryption iv
+        testcookie_refresh_encrypt_cookie_iv deadbeefdeadbeefdeadbeefdeadbeef;
+
+        #setting response template
+        testcookie_refresh_template '<html><body>setting cookie...<script type=\"text/javascript\" src=\"/aes.min.js\" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f++)e+=(16>d[f]?"0":"")+d[f].toString(16);return e.toLowerCase()}var a=toNumbers("$testcookie_enc_key"),b=toNumbers("$testcookie_enc_iv"),c=toNumbers("$testcookie_enc_set");document.cookie="BPC="+toHex(slowAES.decrypt(c,2,a,b))+"; expires=Thu, 31-Dec-37 23:55:55 GMT; path=/";document.location.href="$testcookie_nexturl";</script></body></html>';
+
+        server {
+            listen 80;
+            server_name test.com;
+
+
+            location = /aes.min.js {
+                gzip  on;
+                gzip_min_length 1000;
+                gzip_types      text/plain;
+                root /var/www/public_html;
+            }
+
+            location = /w3c/p3p.xml {
+                root /var/www/public_html;
+            }
+
+            location / {
+                #enable module for specific location
+                testcookie on;
+                proxy_set_header   Host             $host;
+                proxy_set_header   X-Real-IP        $remote_addr;
+                proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+                proxy_pass http://127.0.0.1:80;
+            }
+        }
+    }
+
+TESTS SUITE
+
+    This module comes with a Perl-driven test suite.
+    Thanks to the Test::Nginx (<http://search.cpan.org/perldoc?Test::Nginx>) module in the Perl world.
+
+SOURCES
+
+    Available on github at kyprizel/testcookie-nginx-module
+    (<http://github.com/kyprizel/testcookie-nginx-module>).
+
+TODO
+
+    *   Code review
+    *   IPv6 whitelisting
+    *   More encryption algos (?)
+
+BUGS
+
+    Feel free to report bugs and send patches to kyprizel@gmail.com
+    or use github's issue tracker(<http://github.com/kyprizel/testcookie-nginx-module/issues>).
+
+COPYRIGHT & LICENSE
+
+    Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
+
+    All rights reserved.
+
+    This module is licenced under the terms of BSD license.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+
+    *   Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
+
+    *   Redistributions in binary form must reproduce the above copyright
+        notice, this list of conditions and the following disclaimer in the
+        documentation and/or other materials provided with the distribution.
+
+    *   Neither the name of the authors nor the names of its contributors
+        may be used to endorse or promote products derived from this
+        software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+    IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED.  IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
+    FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+    OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+    OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+    SUCH DAMAGE.
