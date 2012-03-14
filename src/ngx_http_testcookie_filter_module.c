@@ -63,8 +63,10 @@ typedef struct {
 typedef struct {
     u_char      *uid_set;
     u_char      *uid_got;
+#ifdef REFRESH_COOKIE_ENCRYPTION
     u_char      *encrypt_key;
     u_char      *encrypt_iv;
+#endif
     u_short     ok;
     ngx_str_t   cookie;
 } ngx_http_testcookie_ctx_t;
@@ -1104,7 +1106,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
         ngx_http_set_ctx(r, ctx, ngx_http_testcookie_filter_module);
     }
 
-#define REFRESH_COOKIE_ENCRYPTION
+#ifdef REFRESH_COOKIE_ENCRYPTION
     if (conf->refresh_encrypt_cookie == 1) {
         if (conf->refresh_encrypt_cookie_key == NULL) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Encryption key is not defined, skipping to prevent errors");
