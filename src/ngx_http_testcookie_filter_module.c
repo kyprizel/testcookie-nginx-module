@@ -1138,21 +1138,23 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
     }
 #endif
 
-#if (NGX_HAVE_INET6)
-    /* no IPv6 support :( */
-    return NULL;
-#endif
+    switch (r->connection->sockaddr->sa_family) {
+    case AF_INET:
 
-   /* AF_INET only */
+        /* AF_INET only */
+        sin = (struct sockaddr_in *) r->connection->sockaddr;
 
-    sin = (struct sockaddr_in *) r->connection->sockaddr;
-
-    if (conf->whitelist != NULL) {
-        vv = (ngx_http_variable_value_t *) ngx_radix32tree_find(conf->whitelist, ntohl(sin->sin_addr.s_addr));
-        if (vv->len > 0) {
-            ctx->ok = 1;
-            return ctx;
+        if (conf->whitelist != NULL) {
+            vv = (ngx_http_variable_value_t *) ngx_radix32tree_find(conf->whitelist, ntohl(sin->sin_addr.s_addr));
+            if (vv->len > 0) {
+                ctx->ok = 1;
+                return ctx;
+            }
         }
+
+#if (NGX_HAVE_INET6)
+        /* no IPv6 support :( */
+#endif
     }
 
     ctx->ok = 0;
