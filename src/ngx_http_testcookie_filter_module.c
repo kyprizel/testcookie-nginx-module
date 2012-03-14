@@ -1104,6 +1104,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
         ngx_http_set_ctx(r, ctx, ngx_http_testcookie_filter_module);
     }
 
+#define REFRESH_COOKIE_ENCRYPTION
     if (conf->refresh_encrypt_cookie == 1) {
         if (conf->refresh_encrypt_cookie_key == NULL) {
             ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Encryption key is not defined, skipping to prevent errors");
@@ -1119,12 +1120,12 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
         }
         ngx_memcpy(ctx->encrypt_key, conf->refresh_encrypt_cookie_key, MD5_DIGEST_LENGTH);
         if (conf->refresh_encrypt_cookie_iv == NULL) {
-        /*
-            SHA1 eats too much CPU
-            do we _really_ need cryptographically strong random here in our case ?
-        */
+            /*
+                SHA1 eats too much CPU
+                do we _really_ need cryptographically strong random here in our case ?
+            */
             if (RAND_bytes(ctx->encrypt_iv, MD5_DIGEST_LENGTH) == 0) {
-        /*            if (RAND_pseudo_bytes(ctx->encrypt_iv, MD5_DIGEST_LENGTH) < 0) { */
+            /*            if (RAND_pseudo_bytes(ctx->encrypt_iv, MD5_DIGEST_LENGTH) < 0) { */
                 ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                                "Openssl random IV generation error");
                 return NULL;
@@ -1133,6 +1134,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
             ngx_memcpy(ctx->encrypt_iv, conf->refresh_encrypt_cookie_iv, MD5_DIGEST_LENGTH);
         }
     }
+#endif
 
 #if (NGX_HAVE_INET6)
     /* no IPv6 support :( */
@@ -1738,6 +1740,7 @@ ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data)
         secret->data = (u_char *) "";
     }
 
+#ifdef REFRESH_COOKIE_ENCRYPTION
     if (ngx_strcmp(secret->data, "random") == 0) {
         secret->len = MD5_DIGEST_LENGTH;
         if (RAND_bytes(secret->data, MD5_DIGEST_LENGTH) == 0) {
@@ -1747,6 +1750,7 @@ ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data)
         }
         return NGX_CONF_OK;
     }
+#endif
 
     return NGX_CONF_OK;
 }
