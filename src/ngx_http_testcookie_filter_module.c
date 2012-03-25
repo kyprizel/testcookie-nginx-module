@@ -1399,7 +1399,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
 
     conf->enable = NGX_CONF_UNSET;
     conf->expires = NGX_CONF_UNSET;
-    conf->max_attempts = NGX_CONF_UNSET;
+    conf->max_attempts = 4;
     conf->whitelist = NULL;
     conf->fallback_lengths = NULL;
     conf->fallback_values = NULL;
@@ -1440,7 +1440,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_str_value(conf->fallback, prev->fallback, "");
     ngx_conf_merge_str_value(conf->refresh_template, prev->refresh_template, "");
 
-    ngx_conf_merge_value(conf->max_attempts, prev->max_attempts, NGX_CONF_UNSET);
+    ngx_conf_merge_value(conf->max_attempts, prev->max_attempts, 4);
     ngx_conf_merge_sec_value(conf->expires, prev->expires, 0);
 
     if (conf->whitelist == NULL) {
