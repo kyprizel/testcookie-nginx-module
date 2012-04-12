@@ -1,0 +1,4 @@
+v1.0
+*) Keep-alive block fixed
+*) Problem with max attempts fixed
+*) var option added

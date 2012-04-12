@@ -13,7 +13,9 @@ DESCRIPTION
 DIRECTIVES
 
     testcookie
-        enable/disable module (on|off)
+        on - enable module
+        off - disable module
+        var - don't intercept requests, only set cookie vars
 
     testcookie_name
         cookie name, default is TCK

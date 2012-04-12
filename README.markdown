@@ -17,13 +17,16 @@ Directives
 
 testcookie
 ----------
-**syntax:** *testcookie (on|off);*
+**syntax:** *testcookie (on|off|var);*
 
 **default:** *off*
 
 **context:** *http, server, location*
 
-Enable/disable module.
+on - Enable module
+off - Disable module
+var - Don't intercept requests, only set module variables.
+
 
 testcookie_name
 ---------------

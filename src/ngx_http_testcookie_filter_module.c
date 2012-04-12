@@ -1,5 +1,9 @@
 /*
-    (c) kyprizel
+    v1.0
+
+    Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
+    All rights reserved.
+    This module is licenced under the terms of BSD license.
 */
 
 #include <ngx_config.h>
@@ -14,15 +18,20 @@
 #include <openssl/evp.h>
 #endif
 
+#define NGX_HTTP_TESTCOOKIE_OFF     0
+#define NGX_HTTP_TESTCOOKIE_ON      1
+#define NGX_HTTP_TESTCOOKIE_VAR     2
+
 /* 31 Dec 2037 23:55:55 GMT */
 #define NGX_HTTP_TESTCOOKIE_MAX_EXPIRES  2145916555
 #define DEFAULT_COOKIE_NAME "TCK"
 #ifndef MD5_DIGEST_LENGTH
     #define MD5_DIGEST_LENGTH 16
 #endif
+#define RFC1945_ATTEMPTS    4
 
 typedef struct {
-    ngx_flag_t                  enable;
+    ngx_uint_t                  enable;
 
     ngx_str_t                   name;
     ngx_str_t                   domain;
@@ -70,6 +79,13 @@ typedef struct {
     u_short     ok;
     ngx_str_t   cookie;
 } ngx_http_testcookie_ctx_t;
+
+static ngx_conf_enum_t  ngx_http_testcookie_filter_state[] = {
+    { ngx_string("off"), NGX_HTTP_TESTCOOKIE_OFF },
+    { ngx_string("on"), NGX_HTTP_TESTCOOKIE_ON },
+    { ngx_string("var"), NGX_HTTP_TESTCOOKIE_VAR },
+    { ngx_null_string, 0 }
+};
 
 
 static ngx_int_t ngx_http_send_refresh(ngx_http_request_t *r);
@@ -124,11 +140,10 @@ static ngx_command_t  ngx_http_testcookie_filter_commands[] = {
 
     { ngx_string("testcookie"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
+      ngx_conf_set_enum_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_testcookie_conf_t, enable),
-      NULL },
-
+      ngx_http_testcookie_filter_state },
     { ngx_string("testcookie_name"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -476,11 +491,21 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     }
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_testcookie_filter_module);
-    if (!conf || !conf->enable) {
+    if (!conf || conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         return NGX_DECLINED;
     }
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ngx_http_testcookie_handler");
+
+    ctx = ngx_http_testcookie_get_uid(r, conf);
+    if (ctx == NULL) {
+//        return NGX_DECLINED;
+        return NGX_HTTP_FORBIDDEN;
+    }
+
+    if (conf->enable == NGX_HTTP_TESTCOOKIE_VAR) {
+        return NGX_DECLINED;
+    }
 
     if (conf->get_only
         && (r->method != NGX_HTTP_GET
@@ -490,12 +515,6 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
 
     if (conf->deny_keepalive) {
         r->keepalive = 0;
-    }
-
-    ctx = ngx_http_testcookie_get_uid(r, conf);
-    if (ctx == NULL) {
-//        return NGX_DECLINED;
-        return NGX_HTTP_FORBIDDEN;
     }
 
     if (ctx->ok == 1) {
@@ -696,9 +715,8 @@ redirect:
     location->value.data = buf;
 
     r->headers_out.location = location;
-    
+
     if (conf->redirect_via_refresh) {
-        r->header_only = 0;
         if (conf->refresh_template.len == 0) {
             return ngx_http_send_refresh(r);
         } else {
@@ -706,26 +724,11 @@ redirect:
         }
     }
 
-    r->err_status = NGX_HTTP_MOVED_TEMPORARILY;
-    r->error_page = 1;
-
-    r->header_only = 1;
-    r->discard_body = 1;
-
-    r->headers_out.content_length_n = 0;
-
-    if (r->headers_out.content_length) {
-        r->headers_out.content_length->hash = 0;
-        r->headers_out.content_length = NULL;
-    }
-
     ngx_http_clear_accept_ranges(r);
     ngx_http_clear_last_modified(r);
+    ngx_http_clear_content_length(r);
 
-    ngx_http_send_header(r);
-    ngx_http_finalize_request(r, NGX_HTTP_MOVED_TEMPORARILY);
-//    ngx_http_finalize_request(r, NGX_HTTP_CLOSE);
-    return NGX_DONE;
+    return NGX_HTTP_MOVED_TEMPORARILY;
 }
 
 static ngx_int_t
@@ -738,7 +741,7 @@ ngx_http_testcookie_got_variable(ngx_http_request_t *r,
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ngx_http_testcookie_got_variable");
 
     conf = ngx_http_get_module_loc_conf(r->main, ngx_http_testcookie_filter_module);
-    if (!conf->enable) {
+    if (conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -781,7 +784,7 @@ ngx_http_testcookie_enc_key_variable(ngx_http_request_t *r,
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ngx_http_testcookie_enc_key_variable");
 
     conf = ngx_http_get_module_loc_conf(r->main, ngx_http_testcookie_filter_module);
-    if (!conf->enable) {
+    if (conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -826,7 +829,7 @@ ngx_http_testcookie_enc_set_variable(ngx_http_request_t *r,
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ngx_http_testcookie_enc_set_variable");
 
     conf = ngx_http_get_module_loc_conf(r->main, ngx_http_testcookie_filter_module);
-    if (!conf->enable) {
+    if (conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -896,7 +899,7 @@ ngx_http_testcookie_enc_iv_variable(ngx_http_request_t *r,
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ngx_http_testcookie_enc_iv_variable");
 
     conf = ngx_http_get_module_loc_conf(r->main, ngx_http_testcookie_filter_module);
-    if (!conf->enable) {
+    if (conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -959,7 +962,7 @@ ngx_http_testcookie_set_variable(ngx_http_request_t *r,
 
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_testcookie_filter_module);
-    if (!conf->enable) {
+    if (conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -995,7 +998,7 @@ ngx_http_testcookie_ok_variable(ngx_http_request_t *r,
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ngx_http_testcookie_ok_variable");
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_testcookie_filter_module);
-    if (!conf->enable) {
+    if (conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -1049,7 +1052,7 @@ ngx_http_testcookie_nexturl_variable(ngx_http_request_t *r,
     location = r->headers_out.location->value.data;
 
     conf = ngx_http_get_module_loc_conf(r, ngx_http_testcookie_filter_module);
-    if (!conf->enable) {
+    if (conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         v->not_found = 1;
         return NGX_OK;
     }
@@ -1399,7 +1402,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
 
     conf->enable = NGX_CONF_UNSET;
     conf->expires = NGX_CONF_UNSET;
-    conf->max_attempts = 4;
+    conf->max_attempts = NGX_CONF_UNSET;
     conf->whitelist = NULL;
     conf->fallback_lengths = NULL;
     conf->fallback_values = NULL;
@@ -1428,7 +1431,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_uint_t                  n;
     ngx_http_script_compile_t   sc;
 
-    ngx_conf_merge_value(conf->enable, prev->enable, 0);
+    ngx_conf_merge_uint_value(conf->enable, prev->enable, NGX_HTTP_TESTCOOKIE_OFF);
 
     ngx_conf_merge_str_value(conf->name, prev->name, DEFAULT_COOKIE_NAME);
     ngx_conf_merge_str_value(conf->domain, prev->domain, "");
@@ -1440,7 +1443,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_str_value(conf->fallback, prev->fallback, "");
     ngx_conf_merge_str_value(conf->refresh_template, prev->refresh_template, "");
 
-    ngx_conf_merge_value(conf->max_attempts, prev->max_attempts, 4);
+    ngx_conf_merge_value(conf->max_attempts, prev->max_attempts, RFC1945_ATTEMPTS);
     ngx_conf_merge_sec_value(conf->expires, prev->expires, 0);
 
     if (conf->whitelist == NULL) {
@@ -1777,9 +1780,9 @@ ngx_http_testcookie_max_attempts(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     /* RFC 1945 for HTTP/1.0 allows up to 5 hops */
-    if (n > 4) {
+    if (n > RFC1945_ATTEMPTS) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                           "max attempts should must be less 5");
+                           "max attempts should must be less than 5");
         return NGX_CONF_ERROR;
     }
 
