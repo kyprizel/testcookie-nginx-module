@@ -1,5 +1,5 @@
 /*
-    v1.0
+    v1.01
 
     Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
     All rights reserved.
@@ -1091,6 +1091,8 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
     ngx_http_testcookie_ctx_t   *ctx;
     struct sockaddr_in          *sin;
 #if (NGX_HAVE_INET6)
+    u_char                      *p;
+    in_addr_t                    addr;
     struct sockaddr_in6         *sin6;
 #endif
     ngx_md5_t                   md5;
@@ -1154,9 +1156,27 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
                 return ctx;
             }
         }
+        break;
 
 #if (NGX_HAVE_INET6)
-        /* no IPv6 support :( */
+    /* still no full IPv6 support :( */
+    case AF_INET6:
+        sin6 = (struct sockaddr_in6 *) r->connection->sockaddr;
+        p = sin6->sin6_addr.s6_addr;
+
+        if (IN6_IS_ADDR_V4MAPPED(&sin6->sin6_addr)) {
+            addr = p[12] << 24;
+            addr += p[13] << 16;
+            addr += p[14] << 8;
+            addr += p[15];
+            vv = (ngx_http_variable_value_t *) ngx_radix32tree_find(conf->whitelist, ntohl(addr));
+            if (vv->len > 0) {
+                ctx->ok = 1;
+                return ctx;
+            }
+        }
+        break;
+
 #endif
     }
 

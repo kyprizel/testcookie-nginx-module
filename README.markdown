@@ -24,7 +24,9 @@ testcookie
 **context:** *http, server, location*
 
 on - Enable module
+
 off - Disable module
+
 var - Don't intercept requests, only set module variables.
 
 
@@ -131,7 +133,7 @@ testcookie_fallback
 
 **context:** *http, server, location*
 
-Sets the fallback URL, user will be redirected to after maximum number of attempts, specified by directive *testcookie_max_attempts exceded*.
+Sets the fallback URL, user will be redirected to after maximum number of attempts, specified by directive *testcookie_max_attempts* exceded.
 Nginx scripting variables can be used here. If not set - client will get 403 after max attempts reached.
 
 testcookie_whitelist
@@ -360,6 +362,7 @@ TODO
 *   Code review
 *   IPv6 whitelisting
 *   More encryption algos (?)
+*   Statistics (?)
 
 Bugs
 ====
