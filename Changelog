@@ -1,3 +1,11 @@
+v1.02
+*) --with-ipv6 compilation is now supported with whitelisting,
+    but only for IPv6 to IPv4 mapped addresses
+*) Whitelisting autotests added
+
+v1.01
+*) --with-ipv6 compilation error fixed
+
 v1.0
 *) Keep-alive block fixed
 *) Problem with max attempts fixed

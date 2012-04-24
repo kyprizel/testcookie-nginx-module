@@ -1,5 +1,5 @@
 /*
-    v1.01
+    v1.02
 
     Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
     All rights reserved.
