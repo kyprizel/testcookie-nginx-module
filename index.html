@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="testcookie-nginx-module : nginx module for l7 ddos attack mitigation" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>testcookie-nginx-module</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/kyprizel/testcookie-nginx-module">Fork Me on GitHub</a>
+
+          <h1 id="project_title">testcookie-nginx-module</h1>
+          <h2 id="project_tagline">nginx module for l7 ddos attack mitigation</h2>
+
+          <section id="downloads">
+            <a class="zip_download_link" href="https://github.com/kyprizel/testcookie-nginx-module/zipball/master">Download this project as a .zip file</a>
+            <a class="tar_download_link" href="https://github.com/kyprizel/testcookie-nginx-module/tarball/master">Download this project as a tar.gz file</a>
+          </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>Description</h1>
+
+<p><strong>testcookie-nginx-module</strong> is a simple robot mitigation module using cookie based challenge/response technique.</p>
+
+<p>Challenge cookies can be set using different methods:</p>
+
+<ul>
+<li>  "Set-Cookie" + 301 HTTP Location redirect</li>
+<li>  "Set-Cookie" + HTML meta refresh redirect</li>
+</ul><p><img src="http://habrastorage.org/storage2/039/931/1a9/0399311a9a4257fd6298fe1e2d4e098c.png" alt="Simple mode"></p>
+
+<ul>
+<li>  Custom template, JavaScript can be used here.</li>
+</ul><p><img src="http://habrastorage.org/storage2/5a2/d5a/3cf/5a2d5a3cf0fed6ebfc3865556ef65c54.png" alt="Javascript mode"></p>
+
+<p>To prevent automatic parsing, challenge cookie value can be encrypted with AES-128 in CBC mode using custom/random key and iv, and then decrypted at client side with JavaScript using <a href="http://code.google.com/p/slowaes/">SlowAES</a>.</p>
+
+<p>If you need Flash or Captcha, check <a href="http://github.com/kyprizel/testcookie-flash-processor">testcookie-flash-processor</a>.</p>
+
+<h1>Support the project</h1>
+
+<p>Donations are appreciated, please use the <a href="http://pledgie.com/campaigns/17224">Pledgie</a> system which accepts Paypal payments or contact the author directly.</p>
+
+<h1>Bugs</h1>
+
+<p>Feel free to report bugs and send patches to <a href="mailto:kyprizel@gmail.com">kyprizel@gmail.com</a>
+or using <a href="http://github.com/kyprizel/testcookie-nginx-module/issues">github's issue tracker</a>.</p>
+
+<h1>Copyright &amp; License</h1>
+
+<p>Copyright (C) 2011-2012 Eldar Zaitov (<a href="mailto:kyprizel@gmail.com">kyprizel@gmail.com</a>).</p>
+
+<p>All rights reserved.</p>
+
+<p>This module is licenced under the terms of BSD license.</p>
+
+<p>Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:</p>
+
+<pre><code>*   Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+*   Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+*   Neither the name of the authors nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+</code></pre>
+
+<p>THIS SOFTWARE IS PROVIDED BY AUTHOR AND CONTRIBUTORS ``AS IS'' AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED.  IN NO EVENT SHALL AUTHOR OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGE.</p>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">testcookie-nginx-module maintained by <a href="https://github.com/kyprizel">kyprizel</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-31157372-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+
+  </body>
+</html>
