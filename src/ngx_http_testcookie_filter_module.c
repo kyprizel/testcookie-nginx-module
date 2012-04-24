@@ -1937,11 +1937,6 @@ ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
     ngx_cidr_t                  cidr;
     ngx_http_testcookie_conf_t  *ucf = conf;
 
-#if (NGX_HAVE_INET6)
-    /* no IPv6 support :( */
-    return NGX_CONF_OK;
-#endif
-
     value = cf->args->elts;
 
     if (ngx_strcmp(value[0].data, "include") == 0) {

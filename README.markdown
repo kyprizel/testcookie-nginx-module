@@ -142,7 +142,7 @@ testcookie_whitelist
 
 **default:** *none*
 
-**context:** *http, server, location*
+**context:** *http, server*
 
 Sets the networks for which the testing will not be used, add search engine networks here. Currently IPv4 CIDR only.
 

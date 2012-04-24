@@ -4,7 +4,7 @@
 use lib 'lib';
 use Test::Nginx::Socket;
 
-plan tests => repeat_each(1) * 3 * blocks() - 6;
+plan tests => repeat_each(1) * 3 * blocks() - 7;
 no_long_string();
 no_root_location();
 $ENV{TEST_NGINX_SERVROOT} = server_root();
@@ -184,3 +184,26 @@ GET /?a=test
 --- error_code: 200
 --- response_body_like eval
 "hello world!"
+
+=== TEST 10: Basic GET request, whitelisting
+--- http_config
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret flagmebla;
+    testcookie_session $remote_addr$http_user_agent;
+    testcookie_arg tstc;
+    testcookie_max_attempts 3;
+    testcookie_fallback http://google.com/cookies.html?backurl=http://$host$request_uri;
+    testcookie_redirect_via_refresh on;
+    testcookie_refresh_template 'hello world!';
+    testcookie_whitelist {
+        127.0.0.1/32;
+    }
+--- config
+        testcookie on;
+--- request
+GET /?a=test
+--- error_code: 200
+--- response_body_like eval
+"<html><head><title>It works!</title></head><body>It works!</body></html>"
+
