@@ -1,5 +1,5 @@
 /*
-    v1.02
+    v1.03
 
     Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
     All rights reserved.
@@ -487,6 +487,13 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
 
 
     if (r != r->main) {
+        return NGX_DECLINED;
+    }
+
+    ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                   "request type: %d", r->internal);
+
+    if (r->internal) {
         return NGX_DECLINED;
     }
 
@@ -1228,7 +1235,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
                       &cookies[n]->value);
 
 
-    if (ctx->cookie.len == 0 || ctx->cookie.len != MD5_DIGEST_LENGTH*2) {
+    if (ctx->cookie.len != MD5_DIGEST_LENGTH*2) {
         return ctx;
     }
 

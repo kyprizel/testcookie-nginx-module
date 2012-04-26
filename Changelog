@@ -1,3 +1,6 @@
+v1.03
+*) no check for Internal requests
+
 v1.02
 *) --with-ipv6 compilation is now supported with whitelisting,
     but only for IPv6 to IPv4 mapped addresses
