@@ -1,3 +1,6 @@
+v1.04
+*) if testcookie_arg is not set - just redirect the client infinitely w/o using fallback_url
+
 v1.03
 *) no check for Internal requests
 

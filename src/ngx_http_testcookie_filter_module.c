@@ -1,5 +1,5 @@
 /*
-    v1.03
+    v1.04
 
     Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
     All rights reserved.
@@ -530,56 +530,54 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
-    if (conf->arg.len == 0 || conf->max_attempts == 0) {
-        return NGX_DECLINED;
-    }
-
-    i = j = k = l = 0;
-    attempt = 0;
-
     args = &r->args;
     look = &conf->arg;
+    i = j = k = l = 0;
+    attempt = 0;
+    sc = 0;
 
-    if (args->len > 0) {
-        for (i = 0; i <= args->len; i++) {
-            if ((i == args->len) || (args->data[i] == '&')) {
-                    if (j > 1) {
-                        k = j;
-                        l = i;
+    if (look->len > 0) {
+        if (args->len > 0) {
+            for (i = 0; i <= args->len; i++) {
+                if ((i == args->len) || (args->data[i] == '&')) {
+                        if (j > 1) {
+                            k = j;
+                            l = i;
+                        }
+                    j = 0;
+                } else if ((j == 0) && (i < args->len-look->len)) {
+                    if ((ngx_strncmp(args->data+i, look->data, look->len) == 0)
+                        && (args->data[i+look->len] == '=')) {
+                            j = i+look->len+1;
+                            i = j-1;
+                    } else {
+                        j = 1;
                     }
-                j = 0;
-            } else if ((j == 0) && (i < args->len-look->len)) {
-                if ((ngx_strncmp(args->data+i, look->data, look->len) == 0)
-                    && (args->data[i+look->len] == '=')) {
-                        j = i+look->len+1;
-                        i = j-1;
-                } else {
-                    j = 1;
                 }
             }
-        }
-        if (l > k) {
-            attempt = ngx_atoi(args->data+k, 1);
-        }
-    }
-
-    if (attempt >= conf->max_attempts) {
-        r->keepalive = 0;
-        if (conf->fallback.len == 0) {
-            return NGX_HTTP_FORBIDDEN;
-        }
-        if (conf->fallback_lengths != NULL && conf->fallback_values != NULL) {
-            if (ngx_http_script_run(r, &compiled_fallback, conf->fallback_lengths->elts,
-                                    0, conf->fallback_values->elts) == NULL) {
-                return NGX_ERROR;
+            if (l > k) {
+                attempt = ngx_atoi(args->data+k, 1);
             }
-            buf = compiled_fallback.data;
-            len = compiled_fallback.len;
-        } else {
-            buf = conf->fallback.data;
-            len = conf->fallback.len;
         }
-        goto redirect;
+
+        if (conf->max_attempts > 0 && attempt >= conf->max_attempts) {
+            r->keepalive = 0;
+            if (conf->fallback.len == 0) {
+                return NGX_HTTP_FORBIDDEN;
+            }
+            if (conf->fallback_lengths != NULL && conf->fallback_values != NULL) {
+                if (ngx_http_script_run(r, &compiled_fallback, conf->fallback_lengths->elts,
+                                        0, conf->fallback_values->elts) == NULL) {
+                    return NGX_ERROR;
+                }
+                buf = compiled_fallback.data;
+                len = compiled_fallback.len;
+            } else {
+                buf = conf->fallback.data;
+                len = conf->fallback.len;
+            }
+            goto redirect;
+        }
     }
 
     len = 0;
@@ -617,20 +615,26 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     } else {
         len += r->uri.len;
     }
-    if (args->len == 0) {
-        sc = 1;
-        len += look->len + sizeof("?=1") - 1;
-    } else {
-        if (l == k) {
-            if (k == l && l == args->len) {
-                sc = 2;
-                len += args->len + sizeof("?1") - 1;
-            } else {
-                sc = 3;
-                len += look->len + args->len + sizeof("?=1&") - 1;
-            }
+    if (look->len > 0) {
+        if (args->len == 0) {
+            sc = 1;
+            len += look->len + sizeof("?=1") - 1;
         } else {
-            sc = 4;
+            if (l == k) {
+                if (k == l && l == args->len) {
+                    sc = 2;
+                    len += args->len + sizeof("?1") - 1;
+                } else {
+                    sc = 3;
+                    len += look->len + args->len + sizeof("?=1&") - 1;
+                }
+            } else {
+                sc = 4;
+                len += args->len + sizeof("?") - 1;
+            }
+        }
+    } else {
+        if (args->len > 0) {
             len += args->len + sizeof("?") - 1;
         }
     }
@@ -676,25 +680,32 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "attempts: %d\n", attempt);
 */
 
-    (*p++) = '?';
-    switch (sc) {
-    case 1:
-        p = ngx_sprintf(p, "%V=1", look);
-        break;
-    case 2:
-        p = ngx_sprintf(p, "%V1", args);
-        break;
-    case 3:
-        p = ngx_sprintf(p, "%V&%V=1", args, look);
-        break;
-    case 4:
-        attempt++;
-        p = ngx_copy(p, args->data, k);
-        p = ngx_sprintf(p, "%d", attempt);
-        p = ngx_copy(p, args->data+l, args->len-l);
-        break;
-    default:
-        break;
+    if (look->len > 0) {
+        (*p++) = '?';
+        switch (sc) {
+        case 1:
+            p = ngx_sprintf(p, "%V=1", look);
+            break;
+        case 2:
+            p = ngx_sprintf(p, "%V1", args);
+            break;
+        case 3:
+            p = ngx_sprintf(p, "%V&%V=1", args, look);
+            break;
+        case 4:
+            attempt++;
+            p = ngx_copy(p, args->data, k);
+            p = ngx_sprintf(p, "%d", attempt);
+            p = ngx_copy(p, args->data+l, args->len-l);
+            break;
+        default:
+            break;
+        }
+    } else {
+        if (args->len > 0) {
+            (*p++) = '?';
+            p = ngx_sprintf(p, "%V", args);
+        }
     }
 
     status = ngx_http_testcookie_set_uid(r, ctx, conf);
@@ -1464,7 +1475,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_str_value(conf->domain, prev->domain, "");
     ngx_conf_merge_str_value(conf->path, prev->path, "; path=/");
     ngx_conf_merge_str_value(conf->p3p, prev->p3p, "");
-    ngx_conf_merge_str_value(conf->arg, prev->arg, "attempt");
+    ngx_conf_merge_str_value(conf->arg, prev->arg, "");
     ngx_conf_merge_str_value(conf->secret, prev->secret, "");
 
     ngx_conf_merge_str_value(conf->fallback, prev->fallback, "");

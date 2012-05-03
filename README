@@ -43,11 +43,11 @@ DIRECTIVES
 
     testcookie_arg
         GET parameter name, used for cookie setting attempts computation
-        if not set - argument name "attempt" used.
+        if not set - server will try to set cookie infinitely(actually, browser will show the error page after 5 attempts).
 
     testcookie_max_attempts
-        maximum number of redirects before user will be sent to fallback URL,
-        according to RFC1945 can't be more than 5.
+        maximum number of redirects before user will be sent to fallback URL, according to RFC1945 can't be more than 5
+        if set to 0 or testcookie_arg not set - server will try to set cookie infinitely.
 
     testcookie_p3p
         P3P policy, default is none.

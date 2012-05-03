@@ -143,7 +143,7 @@ GET /?a=test
 --- more_headers
 User-Agent: Mozilla
 --- response_headers
-Location: http://localhost:30001/?a=test&attempt=1
+Location: http://localhost:30001/?a=test
 Set-Cookie: BPC=30f59f604967b09bb8f1e21caf869cb3; path=/
 --- error_code: 302
 

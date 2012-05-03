@@ -99,11 +99,13 @@ testcookie_arg
 --------------
 **syntax:** *testcookie_arg &lt;string&gt;*
 
-**default:** *attempt*
+**default:** *none*
 
 **context:** *http, server, location*
 
-Sets GET parameter name, used for cookie setting attempts computation
+Sets GET parameter name, used for cookie setting attempts computation,
+
+If not set - server will try to set cookie infinitely.
 
 testcookie_max_attempts
 -----------------------
@@ -114,6 +116,9 @@ testcookie_max_attempts
 **context:** *http, server, location*
 
 Sets maximum number of redirects before user will be sent to fallback URL, according to RFC1945 can't be more than 5.
+
+If set to 0 - server will try to set cookie infinitely(actually, browser will show the error page).
+
 
 testcookie_p3p
 --------------
