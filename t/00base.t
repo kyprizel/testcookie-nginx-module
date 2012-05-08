@@ -207,3 +207,22 @@ GET /?a=test
 --- response_body_like eval
 "<html><head><title>It works!</title></head><body>It works!</body></html>"
 
+=== TEST 11: Basic GET request, complex rewrite, test internal redirects
+--- http_config
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret flagmebla;
+    testcookie_session $remote_addr$http_user_agent;
+    testcookie_arg tstc;
+    testcookie_max_attempts 3;
+    testcookie_fallback http://google.com/cookies.html?backurl=http://$host$request_uri;
+    testcookie_internal on;
+--- config
+        testcookie on;
+        rewrite ^/(.*)$ /index.html?$1 last;
+--- request
+GET /test
+--- response_headers
+Location: http://localhost:30001/index.html?test&tstc=1
+Set-Cookie: BPC=4cfb861a6a81106e7660f6eab1d10e0b; path=/
+--- error_code: 302

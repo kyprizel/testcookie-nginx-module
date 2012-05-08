@@ -1,5 +1,5 @@
 /*
-    v1.04
+    v1.05
 
     Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
     All rights reserved.
@@ -66,6 +66,7 @@ typedef struct {
     ngx_flag_t                  redirect_to_https;
     ngx_flag_t                  get_only;
     ngx_flag_t                  deny_keepalive;
+    ngx_flag_t                  internal;
 } ngx_http_testcookie_conf_t;
 
 
@@ -254,6 +255,13 @@ static ngx_command_t  ngx_http_testcookie_filter_commands[] = {
       ngx_conf_set_flag_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_testcookie_conf_t, deny_keepalive),
+      NULL },
+
+    { ngx_string("testcookie_internal"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, internal),
       NULL },
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
@@ -493,16 +501,16 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "request type: %d", r->internal);
 
-    if (r->internal) {
-        return NGX_DECLINED;
-    }
-
     conf = ngx_http_get_module_loc_conf(r, ngx_http_testcookie_filter_module);
     if (!conf || conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         return NGX_DECLINED;
     }
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "ngx_http_testcookie_handler");
+
+    if (r->internal && !conf->internal) {
+        return NGX_DECLINED;
+    }
 
     ctx = ngx_http_testcookie_get_uid(r, conf);
     if (ctx == NULL) {
@@ -1450,6 +1458,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
     conf->redirect_via_refresh = NGX_CONF_UNSET;
     conf->refresh_template_lengths = NULL;
     conf->refresh_template_values = NULL;
+    conf->internal = NGX_CONF_UNSET;
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     conf->refresh_encrypt_cookie = NGX_CONF_UNSET;
@@ -1496,6 +1505,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->get_only, prev->get_only, 0);
     ngx_conf_merge_value(conf->deny_keepalive, prev->deny_keepalive, 0);
     ngx_conf_merge_value(conf->redirect_via_refresh, prev->redirect_via_refresh, 0);
+    ngx_conf_merge_value(conf->internal, prev->internal, 0);
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     ngx_conf_merge_value(conf->refresh_encrypt_cookie, prev->refresh_encrypt_cookie, NGX_CONF_UNSET);

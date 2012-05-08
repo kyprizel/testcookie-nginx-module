@@ -112,6 +112,13 @@ DIRECTIVES
                 32 hex digits - static iv, useful if you plan to obfuscate it deep in client-side javascript
         default is random
 
+    testcookie_internal
+        enable testcookie check for internal redirects (on|off)
+        useful for this type of configs:
+            rewrite ^/(.*)$ /index.php?$1 last;
+        default is off.
+
+
 INSTALLATION
 
     Grab the nginx source code from nginx.org (<http://nginx.org/>), for
@@ -128,7 +135,7 @@ INSTALLATION
 
     For using client-side cookie decryption,
     you need to manually grab SlowAES (<http://code.google.com/p/slowaes/>)
-    JavaScript AES implementation and put it to document root.
+    JavaScript AES implementation, patch it(utils/aes.patch) and put it to document root.
 
 COMPATIBILITY
 
@@ -223,8 +230,8 @@ TODO
 
     *   Code review
     *   IPv6 whitelisting
-    *   More encryption algos (?)
-    *   Statistics (?)
+    *   More encryption algos (-)
+    *   Statistics (-)
 
 BUGS
 

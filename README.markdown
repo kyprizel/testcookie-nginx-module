@@ -253,6 +253,20 @@ Possible values:
     random2 - new iv generated for every nginx restart
     32 hex digits - static iv, useful if you plan to obfuscate it deep in client-side javascript
 
+testcookie_internal
+-------------------
+**syntax:** *testcookie_internal (on|off);*
+
+**default:** *off*
+
+**context:** *http, server, location*
+
+Process only GET requests, POST requests will be bypassed.
+Enable testcookie check for internal redirects(disabled by default for optimization purposes!), useful for this type of configs:
+
+    rewrite ^/(.*)$ /index.php?$1 last;
+
+
 Installation
 ============
 
@@ -266,7 +280,8 @@ Grab the nginx source code from [nginx.org](http://nginx.org/), for example, the
     make
     make install
 
-For using client-side cookie decryption, you need to manually grab [SlowAES](http://code.google.com/p/slowaes/) JavaScript AES implementation and put it to document root.
+For using client-side cookie decryption, you need to manually grab [SlowAES](http://code.google.com/p/slowaes/) JavaScript AES implementation,
+patch it(utils/aes.patch) and put it to document root.
 
 Compatibility
 =============

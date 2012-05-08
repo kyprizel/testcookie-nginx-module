@@ -1,3 +1,7 @@
+v1.05
+*) New config option testcookie_internal - enable testcookie for internal redirects
+*) Padding error patch for SlowAES attached
+
 v1.04
 *) if testcookie_arg is not set - just redirect the client infinitely w/o using fallback_url
 
