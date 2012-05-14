@@ -44,7 +44,7 @@ server {
     testcookie_fallback /cookies.html?backurl=http://$host$uri?$query_string;
     testcookie_get_only on;
     testcookie_redirect_via_refresh on;
-    testcookie_refresh_template '<html><body><script>document.cookie="BPC=$testcookie_set";document.location.href="$testcookie_nexturl";</script></body></html>';
+    testcookie_refresh_template '<html><body><script>document.cookie="BPC=$testcookie_set";location.href="$testcookie_nexturl";</script></body></html>';
 
     location = /cookies.html {
         root /var/www/public_html;
@@ -75,7 +75,7 @@ server {
     testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
     testcookie_get_only on;
     testcookie_redirect_via_refresh on;
-    testcookie_refresh_template '<html><body><script>function bla() { document.cookie="BPC=$testcookie_set";document.location.href="$testcookie_nexturl";}</script><input type="submit" value="click me" onclick="bla();"></body></html>';
+    testcookie_refresh_template '<html><body><script>function bla() { document.cookie="BPC=$testcookie_set";location.href="$testcookie_nexturl";}</script><input type="submit" value="click me" onclick="bla();"></body></html>';
 
     location = /cookies.html {
         root /var/www/public_html;
@@ -109,7 +109,7 @@ server {
     testcookie_refresh_encrypt_cookie on;
     testcookie_refresh_encrypt_cookie_key random;
     testcookie_refresh_encrypt_cookie_iv random;
-    testcookie_refresh_template '<html><body>setting cookie...<script type=\"text/javascript\" src=\"/aes.min.js\" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f++)e+=(16>d[f]?"0":"")+d[f].toString(16);return e.toLowerCase()}var a=toNumbers("$testcookie_enc_key"),b=toNumbers("$testcookie_enc_iv"),c=toNumbers("$testcookie_enc_set");document.cookie="BPC="+toHex(slowAES.decrypt(c,2,a,b))+"; expires=Thu, 31-Dec-37 23:55:55 GMT; path=/";document.location.href="$testcookie_nexturl";</script></body></html>';
+    testcookie_refresh_template '<html><body>setting cookie...<script type=\"text/javascript\" src=\"/aes.min.js\" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f++)e+=(16>d[f]?"0":"")+d[f].toString(16);return e.toLowerCase()}var a=toNumbers("$testcookie_enc_key"),b=toNumbers("$testcookie_enc_iv"),c=toNumbers("$testcookie_enc_set");document.cookie="BPC="+toHex(slowAES.decrypt(c,2,a,b))+"; expires=Thu, 31-Dec-37 23:55:55 GMT; path=/";location.href="$testcookie_nexturl";</script></body></html>';
 
     location = /aes.min.js {
         gzip on;
@@ -149,7 +149,7 @@ server {
     testcookie_refresh_encrypt_cookie_key deadbeefdeadbeefdeadbeefdeadbeef; #change it by cron
     testcookie_refresh_encrypt_cookie_iv deadbeefdeadbeefdeadbeefdeadbeef; #change it by cron
 
-    testcookie_refresh_template '<html><body>setting cookie...<script type=\"text/javascript\" src=\"/aes.min.js\" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f++)e+=(16>d[f]?"0":"")+d[f].toString(16);return e.toLowerCase()}var a=toNumbers({use your favorite JS obfuscator to hide key value here}),b=toNumbers({use your favorite JS obfuscator to hide key value here}),c=toNumbers("$testcookie_enc_set");document.cookie="BPC="+toHex(slowAES.decrypt(c,2,a,b))+"; expires=Thu, 31-Dec-37 23:55:55 GMT; path=/";document.location.href="$testcookie_nexturl";</script></body></html>';
+    testcookie_refresh_template '<html><body>setting cookie...<script type=\"text/javascript\" src=\"/aes.min.js\" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f++)e+=(16>d[f]?"0":"")+d[f].toString(16);return e.toLowerCase()}var a=toNumbers({use your favorite JS obfuscator to hide key value here}),b=toNumbers({use your favorite JS obfuscator to hide key value here}),c=toNumbers("$testcookie_enc_set");document.cookie="BPC="+toHex(slowAES.decrypt(c,2,a,b))+"; expires=Thu, 31-Dec-37 23:55:55 GMT; path=/";location.href="$testcookie_nexturl";</script></body></html>';
 
     location = /aes.min.js {
         gzip on;
