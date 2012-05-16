@@ -1112,7 +1112,9 @@ static ngx_http_testcookie_ctx_t *
 ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *conf)
 {
     ngx_int_t                   n;
+#if (NGX_DEBUG)
     ngx_table_elt_t             **cookies;
+#endif
     ngx_http_testcookie_conf_t  *ucf = conf;
     ngx_http_testcookie_ctx_t   *ctx;
     struct sockaddr_in          *sin;
@@ -1247,12 +1249,13 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "ctx uid cookie: \"%V\"", &ctx->cookie);
 
+#if (NGX_DEBUG)
     cookies = r->headers_in.cookies.elts;
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                       "client sent cookies \"%V\"",
                       &cookies[n]->value);
-
+#endif
 
     if (ctx->cookie.len != MD5_DIGEST_LENGTH*2) {
         return ctx;
