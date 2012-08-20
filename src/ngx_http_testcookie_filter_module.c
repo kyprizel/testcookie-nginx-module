@@ -1048,7 +1048,7 @@ ngx_http_testcookie_ok_variable(ngx_http_request_t *r,
     v->no_cacheable = 1;
     v->not_found = 0;
 
-    if (ctx->ok) {
+    if (ctx->ok == 1) {
         ngx_memcpy(v->data, "yes", sizeof("yes") - 1);
     } else {
         ngx_memcpy(v->data, "no", sizeof("no") - 1);
