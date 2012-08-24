@@ -226,3 +226,28 @@ GET /test
 Location: http://localhost:30001/index.html?test&tstc=1
 Set-Cookie: BPC=4cfb861a6a81106e7660f6eab1d10e0b; path=/
 --- error_code: 302
+
+=== TEST 12: Basic GET request, test user-agent if condition
+--- http_config
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret flagmebla;
+    testcookie_session $remote_addr$http_user_agent;
+    testcookie_arg tstc;
+    testcookie_max_attempts 3;
+    testcookie_fallback http://google.com/cookies.html?backurl=http://$host$request_uri;
+    testcookie_internal on;
+--- config
+        location / {
+            if ($http_user_agent = "test") {
+                testcookie on;
+            }
+        }
+--- request
+GET /?xxx
+--- more_headers
+User-Agent: test
+--- response_headers
+Location: http://localhost:30001/?xxx&tstc=1
+Set-Cookie: BPC=c6d90bd3e1bab267f80a4ef605cf61d0; path=/
+--- error_code: 302

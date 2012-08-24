@@ -21,7 +21,7 @@ testcookie
 
 **default:** *off*
 
-**context:** *http, server, location*
+**context:** *http, server, location, if*
 
 on - Enable module
 

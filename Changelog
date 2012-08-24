@@ -1,3 +1,6 @@
+v1.06
+*) testcookie directive now can be used in location and server IF
+
 v1.05
 *) New config option testcookie_internal - enable testcookie for internal redirects
 *) Padding error patch for SlowAES attached

@@ -1,5 +1,5 @@
 /*
-    v1.05
+    v1.06
 
     Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
     All rights reserved.
@@ -140,7 +140,8 @@ static ngx_conf_post_handler_pt  ngx_http_testcookie_secret_p = ngx_http_testcoo
 static ngx_command_t  ngx_http_testcookie_filter_commands[] = {
 
     { ngx_string("testcookie"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF
+        |NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_testcookie_conf_t, enable),

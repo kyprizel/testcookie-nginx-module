@@ -169,3 +169,34 @@ server {
         proxy_pass http://127.0.0.1:8080;
     }
 }
+
+6. User-Agent whitelisting example (not recomended!)
+
+server {
+    listen 80;
+    server_name domain.com;
+
+
+    testcookie on;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+    location / {
+        if ($http_user_agent =~ "Yandex|Google") {
+            testcookie off;
+        }
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
