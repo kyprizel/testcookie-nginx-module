@@ -5,7 +5,7 @@ Description
 
 Challenge cookies can be set using different methods:
 
-*   "Set-Cookie" + 301 HTTP Location redirect
+*   "Set-Cookie" + 302/307 HTTP Location redirect
 *   "Set-Cookie" + HTML meta refresh redirect
 *   Custom template, JavaScript can be used here.
 

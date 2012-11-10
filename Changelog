@@ -1,3 +1,6 @@
+v1.07
+*) Default redirect code changed from 302 to 307 for HTTP 1.1+
+
 v1.06
 *) testcookie directive now can be used in location and server IF
 

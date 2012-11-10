@@ -1,5 +1,5 @@
 /*
-    v1.06
+    v1.07
 
     Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
     All rights reserved.
@@ -477,12 +477,12 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
 static ngx_int_t
 ngx_http_testcookie_handler(ngx_http_request_t *r)
 {
-    ngx_int_t       status;
     ngx_http_testcookie_ctx_t   *ctx;
     ngx_http_testcookie_conf_t  *conf;
     ngx_str_t       *args, *look;
     ngx_uint_t      i, j, k, l;
     ngx_int_t       attempt;
+    ngx_int_t       rc;
     u_char          *buf, *p;
     size_t          len;
     u_short         sc;
@@ -717,9 +717,9 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         }
     }
 
-    status = ngx_http_testcookie_set_uid(r, ctx, conf);
-    if (status == NGX_ERROR) {
-        return status;
+    rc = ngx_http_testcookie_set_uid(r, ctx, conf);
+    if (rc != NGX_OK) {
+        return rc;
     }
 
 redirect:
@@ -729,7 +729,13 @@ redirect:
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "redirectig user to %s", buf);
 */
 
-    r->headers_out.status = NGX_HTTP_MOVED_TEMPORARILY;
+    if (r->http_version < NGX_HTTP_VERSION_11) {
+        r->headers_out.status = NGX_HTTP_MOVED_TEMPORARILY;
+        rc = NGX_HTTP_MOVED_TEMPORARILY;
+    } else {
+        r->headers_out.status = NGX_HTTP_TEMPORARY_REDIRECT;
+        rc = NGX_HTTP_TEMPORARY_REDIRECT;
+    }
     location = ngx_list_push(&r->headers_out.headers);
     if (location == NULL) {
         return NGX_ERROR;
@@ -743,6 +749,10 @@ redirect:
 
     r->headers_out.location = location;
 
+    ngx_http_clear_accept_ranges(r);
+    ngx_http_clear_last_modified(r);
+    ngx_http_clear_content_length(r);
+
     if (conf->redirect_via_refresh) {
         if (conf->refresh_template.len == 0) {
             return ngx_http_send_refresh(r);
@@ -751,11 +761,7 @@ redirect:
         }
     }
 
-    ngx_http_clear_accept_ranges(r);
-    ngx_http_clear_last_modified(r);
-    ngx_http_clear_content_length(r);
-
-    return NGX_HTTP_MOVED_TEMPORARILY;
+    return rc;
 }
 
 static ngx_int_t
