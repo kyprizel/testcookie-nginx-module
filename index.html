@@ -38,17 +38,17 @@
 <p>Challenge cookies can be set using different methods:</p>
 
 <ul>
-<li>  "Set-Cookie" + 301 HTTP Location redirect</li>
+<li>  "Set-Cookie" + 307/302 HTTP Location redirect</li>
 <li>  "Set-Cookie" + HTML meta refresh redirect</li>
-</ul><p><img src="http://habrastorage.org/storage2/039/931/1a9/0399311a9a4257fd6298fe1e2d4e098c.png" alt="Simple mode"></p>
+</ul><p><img src="../images/simple_set-cookie.png" alt="Simple mode"></p>
 
 <ul>
 <li>  Custom template, JavaScript can be used here.</li>
-</ul><p><img src="http://habrastorage.org/storage2/5a2/d5a/3cf/5a2d5a3cf0fed6ebfc3865556ef65c54.png" alt="Javascript mode"></p>
+</ul><p><img src="../images/AES_set-cookie.png" alt="Javascript mode"></p>
 
 <p>To prevent automatic parsing, challenge cookie value can be encrypted with AES-128 in CBC mode using custom/random key and iv, and then decrypted at client side with JavaScript using <a href="http://code.google.com/p/slowaes/">SlowAES</a>.</p>
 
-<p>If you need Flash or Captcha, check <a href="http://github.com/kyprizel/testcookie-flash-processor">testcookie-flash-processor</a>.</p>
+<p>If you need Captcha or Flash, check <a href="//github.com/kyprizel/testcookie-flash-processor">testcookie-flash-processor</a> for extension example.</p>
 
 <h1>Support the project</h1>
 
@@ -56,12 +56,12 @@
 
 <h1>Bugs</h1>
 
-<p>Feel free to report bugs and send patches to <a href="mailto:kyprizel@gmail.com">kyprizel@gmail.com</a>
-or using <a href="http://github.com/kyprizel/testcookie-nginx-module/issues">github's issue tracker</a>.</p>
+<p>Feel free to report bugs and send patches to <a href="mailto:eldar@kyprizel.net">eldar@kyprizel.net</a>
+or using <a href="//github.com/kyprizel/testcookie-nginx-module/issues">github's issue tracker</a>.</p>
 
 <h1>Copyright &amp; License</h1>
 
-<p>Copyright (C) 2011-2012 Eldar Zaitov (<a href="mailto:kyprizel@gmail.com">kyprizel@gmail.com</a>).</p>
+<p>Copyright (C) 2011-2012 Eldar Zaitov (<a href="mailto:eldar@kyprizel.net">eldar@kyprizel.net</a>).</p>
 
 <p>All rights reserved.</p>
 
@@ -93,7 +93,7 @@ SUCH DAMAGE.</p>
     <!-- FOOTER  -->
     <div id="footer_wrap" class="outer">
       <footer class="inner">
-        <p class="copyright">testcookie-nginx-module maintained by <a href="https://github.com/kyprizel">kyprizel</a></p>
+        <p class="copyright">testcookie-nginx-module maintained by <a href="http://kyprizel.net">kyprizel</a></p>
         <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
       </footer>
     </div>
