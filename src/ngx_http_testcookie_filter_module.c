@@ -417,7 +417,7 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
     ngx_chain_t   out;
     ngx_str_t     compiled_refresh_template;
 
-    r->err_status = NGX_HTTP_OK;
+    r->err_status = NGX_HTTP_SERVICE_UNAVAILABLE;
 
     r->headers_out.content_type_len = sizeof("text/html") - 1;
     r->headers_out.content_type.data = (u_char *) "text/html";
@@ -516,7 +516,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     ctx = ngx_http_testcookie_get_uid(r, conf);
     if (ctx == NULL) {
 //        return NGX_DECLINED;
-        return NGX_HTTP_FORBIDDEN;
+        return NGX_HTTP_SERVICE_UNAVAILABLE;
     }
 
     if (conf->enable == NGX_HTTP_TESTCOOKIE_VAR) {
@@ -572,7 +572,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         if (conf->max_attempts > 0 && attempt >= conf->max_attempts) {
             r->keepalive = 0;
             if (conf->fallback.len == 0) {
-                return NGX_HTTP_FORBIDDEN;
+                return NGX_HTTP_SERVICE_UNAVAILABLE;
             }
             if (conf->fallback_lengths != NULL && conf->fallback_values != NULL) {
                 if (ngx_http_script_run(r, &compiled_fallback, conf->fallback_lengths->elts,
