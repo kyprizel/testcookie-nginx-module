@@ -356,7 +356,7 @@ ngx_http_send_refresh(ngx_http_request_t *r)
            + escape + len
            + sizeof(ngx_http_msie_refresh_tail) - 1;
 
-    r->err_status = NGX_HTTP_OK;
+    r->err_status = NGX_HTTP_SERVICE_UNAVAILABLE;
 
     r->headers_out.content_type_len = sizeof("text/html") - 1;
     r->headers_out.content_type.len = sizeof("text/html") - 1;
