@@ -125,3 +125,26 @@ GET /?a=test
 --- error_code: 200
 --- response_body_like eval
 '^(\w){32} (\w){32} (\w){32}$'
+
+=== TEST 6: HEAD request, custom refresh template, encrypted variables, random key and iv, generated once, after server restart
+--- http_config
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret flagmebla;
+    testcookie_session $remote_addr$http_user_agent;
+    testcookie_arg tstc;
+    testcookie_max_attempts 3;
+    testcookie_fallback http://google.com/cookies.html?backurl=http://$host$request_uri;
+    testcookie_redirect_via_refresh on;
+    testcookie_refresh_template '$testcookie_enc_set $testcookie_enc_iv $testcookie_enc_key';
+
+    testcookie_refresh_encrypt_cookie on;
+    testcookie_refresh_encrypt_cookie_key random;
+    testcookie_refresh_encrypt_cookie_iv random2;
+--- config
+        testcookie on;
+--- request
+GET /?a=test
+--- response_headers
+Content-Length: 98
+--- error_code: 200

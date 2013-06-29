@@ -1,7 +1,7 @@
 /*
-    v1.07
+    v1.08
 
-    Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
+    Copyright (C) 2011-2012 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
     This module is licenced under the terms of BSD license.
 */
@@ -377,8 +377,13 @@ ngx_http_send_refresh(ngx_http_request_t *r)
 
     rc = ngx_http_send_header(r);
 
-    if (rc == NGX_ERROR || r->header_only) {
+    if (rc == NGX_ERROR) {
         return rc;
+    }
+
+    if (r->header_only) {
+        ngx_http_finalize_request(r, 0);
+        return NGX_DONE;
     }
 
     b = ngx_create_temp_buf(r->pool, size);
@@ -448,8 +453,13 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
 
     rc = ngx_http_send_header(r);
 
-    if (rc == NGX_ERROR || r->header_only) {
+    if (rc == NGX_ERROR) {
         return rc;
+    }
+
+    if (r->header_only) {
+        ngx_http_finalize_request(r, 0);
+        return NGX_DONE;
     }
 
     b = ngx_create_temp_buf(r->pool, compiled_refresh_template.len);

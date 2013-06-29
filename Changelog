@@ -1,3 +1,6 @@
+v1.08
+*) Bugfix, fixed bypass with HEAD method in redirect_via_refresh mode
+
 v1.07
 *) Default redirect code changed from 302 to 307 for HTTP 1.1+
 
