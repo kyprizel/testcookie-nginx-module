@@ -1,5 +1,5 @@
 /*
-    v1.08
+    v1.09
 
     Copyright (C) 2011-2012 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
@@ -1176,10 +1176,8 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
                 SHA1 eats too much CPU
                 do we _really_ need cryptographically strong random here in our case ?
             */
-            if (RAND_bytes(ctx->encrypt_iv, MD5_DIGEST_LENGTH) == 0) {
-            /*            if (RAND_pseudo_bytes(ctx->encrypt_iv, MD5_DIGEST_LENGTH) < 0) { */
-                ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                               "Openssl random IV generation error");
+            if (RAND_bytes(ctx->encrypt_iv, MD5_DIGEST_LENGTH) != 1) {
+                ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Openssl random IV generation error");
                 return NULL;
             }
         } else {
@@ -1818,7 +1816,7 @@ ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data)
 #ifdef REFRESH_COOKIE_ENCRYPTION
     if (ngx_strcmp(secret->data, "random") == 0) {
         secret->len = MD5_DIGEST_LENGTH;
-        if (RAND_bytes(secret->data, MD5_DIGEST_LENGTH) == 0) {
+        if (RAND_bytes(secret->data, MD5_DIGEST_LENGTH) != 1) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "Openssl random secret generation error\n");
             return NGX_CONF_ERROR;
@@ -1871,7 +1869,7 @@ ngx_http_testcookie_set_encryption_key(ngx_conf_t *cf, ngx_command_t *cmd, void 
     ucf->refresh_encrypt_cookie_key = ngx_palloc(cf->pool, MD5_DIGEST_LENGTH);
 
     if (ngx_strcmp(value[1].data, "random") == 0) {
-        if (RAND_bytes(ucf->refresh_encrypt_cookie_key, MD5_DIGEST_LENGTH) == 0) {
+        if (RAND_bytes(ucf->refresh_encrypt_cookie_key, MD5_DIGEST_LENGTH) != 1) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "Openssl random key generation error \"%V\"", &value[0]);
             return NGX_CONF_ERROR;
@@ -1916,7 +1914,7 @@ ngx_http_testcookie_set_encryption_iv(ngx_conf_t *cf, ngx_command_t *cmd, void *
     }
 
     if (ngx_strcmp(value[1].data, "random2") == 0) {
-        if (RAND_bytes(ucf->refresh_encrypt_cookie_iv, MD5_DIGEST_LENGTH) == 0) {
+        if (RAND_bytes(ucf->refresh_encrypt_cookie_iv, MD5_DIGEST_LENGTH) != 1) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                 "Openssl random IV generation error");
             return NGX_CONF_ERROR;
