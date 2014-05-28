@@ -1,5 +1,5 @@
 /*
-    v1.09
+    v1.10
 
     Copyright (C) 2011-2012 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
@@ -47,6 +47,9 @@ typedef struct {
     ngx_int_t                   max_attempts;
 
     ngx_radix_tree_t            *whitelist;
+#if (NGX_HAVE_INET6)
+    ngx_radix_tree_t            *whitelist6;
+#endif
 
     ngx_str_t                   fallback;
     ngx_array_t                 *fallback_lengths;
@@ -1066,9 +1069,9 @@ ngx_http_testcookie_ok_variable(ngx_http_request_t *r,
     v->not_found = 0;
 
     if (ctx->ok == 1) {
-        ngx_memcpy(v->data, "yes", sizeof("yes") - 1);
+        ngx_memcpy(v->data, "1", sizeof("1") - 1);
     } else {
-        ngx_memcpy(v->data, "no", sizeof("no") - 1);
+        ngx_memcpy(v->data, "0", sizeof("0") - 1);
     }
 
     return NGX_OK;
@@ -1143,7 +1146,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
     ngx_md5_t                   md5;
     ngx_str_t                   value;
     ngx_str_t                   *check;
-    ngx_http_variable_value_t   *vv;
+    ngx_http_variable_value_t   *vv = NULL;
     u_char                      complex_hash[MD5_DIGEST_LENGTH];
     u_char                      complex_hash_hex[MD5_DIGEST_LENGTH*2];
 
@@ -1194,15 +1197,10 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
 
         if (conf->whitelist != NULL) {
             vv = (ngx_http_variable_value_t *) ngx_radix32tree_find(conf->whitelist, ntohl(sin->sin_addr.s_addr));
-            if (vv->len > 0) {
-                ctx->ok = 1;
-                return ctx;
-            }
         }
         break;
 
 #if (NGX_HAVE_INET6)
-    /* still no full IPv6 support :( */
     case AF_INET6:
         sin6 = (struct sockaddr_in6 *) r->connection->sockaddr;
         p = sin6->sin6_addr.s6_addr;
@@ -1212,15 +1210,22 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
             addr += p[13] << 16;
             addr += p[14] << 8;
             addr += p[15];
-            vv = (ngx_http_variable_value_t *) ngx_radix32tree_find(conf->whitelist, ntohl(addr));
-            if (vv->len > 0) {
-                ctx->ok = 1;
-                return ctx;
+            if (conf->whitelist != NULL) {
+                vv = (ngx_http_variable_value_t *) ngx_radix32tree_find(conf->whitelist, ntohl(addr));
+            }
+        } else {
+            if (conf->whitelist6 != NULL) {
+                vv = (ngx_http_variable_value_t *) ngx_radix128tree_find(conf->whitelist6, p);
             }
         }
         break;
 
 #endif
+    }
+
+    if (vv != NULL && vv->len > 0) {
+        ctx->ok = 1;
+        return ctx;
     }
 
     ctx->ok = 0;
@@ -1468,6 +1473,9 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
     conf->expires = NGX_CONF_UNSET;
     conf->max_attempts = NGX_CONF_UNSET;
     conf->whitelist = NULL;
+#if (NGX_HAVE_INET6)
+    conf->whitelist6 = NULL;
+#endif
     conf->fallback_lengths = NULL;
     conf->fallback_values = NULL;
     conf->redirect_to_https = NGX_CONF_UNSET;
@@ -1514,6 +1522,12 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     if (conf->whitelist == NULL) {
         conf->whitelist = prev->whitelist;
     }
+
+#if (NGX_HAVE_INET6)
+    if (conf->whitelist6 == NULL) {
+        conf->whitelist6 = prev->whitelist6;
+    }
+#endif
 
     if (conf->session_key.value.data == NULL) {
         conf->session_key = prev->session_key;
@@ -1939,28 +1953,44 @@ ngx_http_testcookie_set_encryption_iv(ngx_conf_t *cf, ngx_command_t *cmd, void *
 #endif
 
 
-/* AF_INET only */
 static char *
 ngx_http_testcookie_whitelist_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     char                        *rv;
     ngx_conf_t                  save;
     ngx_http_testcookie_conf_t  *ucf = conf;
+#if (NGX_HAVE_INET6)
+    static struct in6_addr    zero;
+#endif
 
     ucf->whitelist = ngx_radix_tree_create(cf->pool, -1);
     if (ucf->whitelist == NULL) {
-        return NULL;
+        return NGX_CONF_ERROR;
     }
 
+#if (NGX_HAVE_INET6)
+    ucf->whitelist6 = ngx_radix_tree_create(cf->pool, -1);
+    if (ucf->whitelist6 == NULL) {
+        return NGX_CONF_ERROR;
+    }
+#endif
+
     if (ngx_radix32tree_find(ucf->whitelist, 0) != NGX_RADIX_NO_VALUE) {
-        return NULL;
+        return NGX_CONF_ERROR;
     }
 
     if (ngx_radix32tree_insert(ucf->whitelist, 0, 0,
                                (uintptr_t) &ngx_http_variable_null_value) == NGX_ERROR) {
-        return NULL;
+        return NGX_CONF_ERROR;
     }
-    
+
+#if (NGX_HAVE_INET6)
+    if (ngx_radix128tree_insert(ucf->whitelist6, zero.s6_addr, zero.s6_addr,
+                               (uintptr_t) &ngx_http_variable_null_value) == NGX_ERROR) {
+        return NGX_CONF_ERROR;
+    }
+#endif
+
     save = *cf;
     cf->handler = ngx_http_testcookie_whitelist;
     cf->handler_conf = (char *)ucf;
@@ -2011,34 +2041,76 @@ ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
                            &value[0]);
     }
 
-    cidr.u.in.addr = ntohl(cidr.u.in.addr);
-    cidr.u.in.mask = ntohl(cidr.u.in.mask);
+    switch (cidr.family) {
 
-    for (i = 2; i; i--) {
-        rc = ngx_radix32tree_insert(ucf->whitelist, cidr.u.in.addr, cidr.u.in.mask,
-                                    (uintptr_t) &ngx_http_variable_true_value);
-        if (rc == NGX_OK) {
-            return NGX_CONF_OK;
+#if (NGX_HAVE_INET6)
+    case AF_INET6:
+
+        for (i = 2; i; i--) {
+            rc = ngx_radix128tree_insert(ucf->whitelist6, cidr.u.in6.addr.s6_addr,
+                                         cidr.u.in6.mask.s6_addr,
+                                         (uintptr_t) &ngx_http_variable_true_value);
+
+            if (rc == NGX_OK) {
+                return NGX_CONF_OK;
+            }
+
+            if (rc == NGX_ERROR) {
+                return NGX_CONF_ERROR;
+            }
+
+            /* rc == NGX_BUSY */
+            old = (ngx_http_variable_value_t *)
+                       ngx_radix128tree_find(ucf->whitelist6,
+                                             cidr.u.in6.addr.s6_addr);
+
+            ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
+                    "duplicate \"%V\", old value: \"%v\"", &value[0], old);
+
+            rc = ngx_radix128tree_delete(ucf->whitelist6,
+                                         cidr.u.in6.addr.s6_addr,
+                                         cidr.u.in6.mask.s6_addr);
+
+            if (rc == NGX_ERROR) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid radix tree");
+                return NGX_CONF_ERROR;
+            }
         }
 
-        if (rc == NGX_ERROR) {
-            return NGX_CONF_ERROR;
-        }
+#endif
 
-        /* rc == NGX_BUSY */
-        old  = (ngx_http_variable_value_t *)
-                    ngx_radix32tree_find(ucf->whitelist, cidr.u.in.addr & cidr.u.in.mask);
+    default: /* AF_INET */
 
-        ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                "duplicate \"%v\"", old);
+        cidr.u.in.addr = ntohl(cidr.u.in.addr);
+        cidr.u.in.mask = ntohl(cidr.u.in.mask);
 
-        rc = ngx_radix32tree_delete(ucf->whitelist, cidr.u.in.addr, cidr.u.in.mask);
+        for (i = 2; i; i--) {
+            rc = ngx_radix32tree_insert(ucf->whitelist, cidr.u.in.addr, cidr.u.in.mask,
+                                        (uintptr_t) &ngx_http_variable_true_value);
+            if (rc == NGX_OK) {
+                return NGX_CONF_OK;
+            }
 
-        if (rc == NGX_ERROR) {
-            return NGX_CONF_ERROR;
+            if (rc == NGX_ERROR) {
+                return NGX_CONF_ERROR;
+            }
+
+            /* rc == NGX_BUSY */
+            old  = (ngx_http_variable_value_t *)
+                        ngx_radix32tree_find(ucf->whitelist, cidr.u.in.addr & cidr.u.in.mask);
+
+            ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
+                    "duplicate \"%V\", old value: \"%v\"", &value[0], old);
+
+            rc = ngx_radix32tree_delete(ucf->whitelist, cidr.u.in.addr, cidr.u.in.mask);
+
+            if (rc == NGX_ERROR) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid radix tree");
+                return NGX_CONF_ERROR;
+            }
         }
     }
-    
+
     return NGX_CONF_ERROR;
 }
 

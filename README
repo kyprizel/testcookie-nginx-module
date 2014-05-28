@@ -72,7 +72,7 @@ DIRECTIVES
             $testcookie_nexturl - URL the client should be redirected to
             $testcookie_uid_got - cookie value received from client, empty if no cookie or it does not match format
             $testcookie_uid_set - correct cookie value we're expecting from client
-            $testcookie_ok - user passed test (yes/no)
+            $testcookie_ok - user passed test (1/0). Note: changed from "yes"/"no" in v1.10
 
         also, if testcookie_refresh_encrypt_cookie enabled there are three more variables
             $testcookie_enc_key - encryption key (32 hex digits)
