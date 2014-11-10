@@ -390,6 +390,12 @@ Bugs
 Feel free to report bugs and send patches to kyprizel@gmail.com
 or using [github's issue tracker](http://github.com/kyprizel/testcookie-nginx-module/issues).
 
+Support the project
+===================
+
+    Send your donations to 1FHmPTP6aDBAzVtM7Pe7Y69zqhjPRx847s
+
+
 Copyright & License
 ===================
 

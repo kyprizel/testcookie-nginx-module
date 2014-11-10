@@ -1,5 +1,5 @@
 /*
-    v1.10
+    v1.11
 
     Copyright (C) 2011-2012 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
@@ -632,10 +632,10 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         }
     }
 
-    if (r->uri.len == 0) {
+    if (r->unparsed_uri.len == 0) {
         len += 1;
     } else {
-        len += r->uri.len;
+        len += r->unparsed_uri.len;
     }
     if (look->len > 0) {
         if (args->len == 0) {
@@ -689,10 +689,10 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         }
     }
 
-    if (r->uri.len == 0) {
+    if (r->unparsed_uri.len == 0) {
         (*p++) = '/';
     } else {
-        p = ngx_copy(p, r->uri.data, r->uri.len);
+        p = ngx_copy(p, r->unparsed_uri.data, r->unparsed_uri.len);
     }
 
 /*
