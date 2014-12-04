@@ -1,7 +1,7 @@
 /*
-    v1.11
+    v1.12
 
-    Copyright (C) 2011-2012 Eldar Zaitov (eldar@kyprizel.net).
+    Copyright (C) 2011-2014 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
     This module is licenced under the terms of BSD license.
 */
@@ -493,7 +493,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     ngx_http_testcookie_ctx_t   *ctx;
     ngx_http_testcookie_conf_t  *conf;
     ngx_str_t       *args, *look;
-    ngx_uint_t      i, j, k, l;
+    ngx_uint_t      i, j, k, l, uri_len;
     ngx_int_t       attempt;
     ngx_int_t       rc;
     u_char          *buf, *p;
@@ -506,7 +506,6 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
 #if (NGX_HAVE_INET6)
     struct sockaddr_in6  *sin6;
 #endif
-
 
     if (r != r->main) {
         return NGX_DECLINED;
@@ -557,6 +556,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     i = j = k = l = 0;
     attempt = 0;
     sc = 0;
+    uri_len = 0;
 
     if (look->len > 0) {
         if (args->len > 0) {
@@ -635,6 +635,13 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     if (r->unparsed_uri.len == 0) {
         len += 1;
     } else {
+        p = r->unparsed_uri.data;
+        for (uri_len = 0; uri_len < r->unparsed_uri.len; uri_len++) {
+            if (*p == '?') {
+                break;
+            }
+            p++;
+        }
         len += r->unparsed_uri.len;
     }
     if (look->len > 0) {
@@ -692,7 +699,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     if (r->unparsed_uri.len == 0) {
         (*p++) = '/';
     } else {
-        p = ngx_copy(p, r->unparsed_uri.data, r->unparsed_uri.len);
+        p = ngx_copy(p, r->unparsed_uri.data, uri_len);
     }
 
 /*
