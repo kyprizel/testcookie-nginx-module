@@ -642,7 +642,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
             }
             p++;
         }
-        len += r->unparsed_uri.len;
+        len += uri_len;
     }
     if (look->len > 0) {
         if (args->len == 0) {
