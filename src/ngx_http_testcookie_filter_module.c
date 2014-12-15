@@ -1,5 +1,5 @@
 /*
-    v1.12
+    v1.13
 
     Copyright (C) 2011-2014 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
@@ -428,6 +428,7 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
     r->err_status = NGX_HTTP_OK;
 
     r->headers_out.content_type_len = sizeof("text/html") - 1;
+    r->headers_out.content_type.len = sizeof("text/html") - 1;
     r->headers_out.content_type.data = (u_char *) "text/html";
 
 

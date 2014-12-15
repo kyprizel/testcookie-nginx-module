@@ -1,3 +1,6 @@
+v1.13
+*) fixed content type on custom refresh, thanks to LoadLow@github
+
 v1.12
 *) fixed uri parsing logic
 
