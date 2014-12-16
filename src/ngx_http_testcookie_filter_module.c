@@ -802,8 +802,11 @@ ngx_http_testcookie_got_variable(ngx_http_request_t *r,
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_testcookie_filter_module);
     if (ctx == NULL) {
-        v->not_found = 1;
-        return NGX_OK;
+        ctx = ngx_http_testcookie_get_uid(r, conf);
+        if (ctx == NULL) {
+            v->not_found = 1;
+            return NGX_OK;
+        }
     }
 
     if (ctx->uid_got == NULL) {
@@ -1023,8 +1026,11 @@ ngx_http_testcookie_set_variable(ngx_http_request_t *r,
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_testcookie_filter_module);
     if (ctx == NULL || ctx->uid_set == NULL) {
-        v->not_found = 1;
-        return NGX_OK;
+        ctx = ngx_http_testcookie_get_uid(r, conf);
+        if (ctx == NULL) {
+            v->not_found = 1;
+            return NGX_OK;
+        }
     }
 
     v->data = (u_char *) ngx_pcalloc(r->pool, MD5_DIGEST_LENGTH*2);
@@ -1059,8 +1065,11 @@ ngx_http_testcookie_ok_variable(ngx_http_request_t *r,
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_testcookie_filter_module);
     if (ctx == NULL) {
-        v->not_found = 1;
-        return NGX_OK;
+        ctx = ngx_http_testcookie_get_uid(r, conf);
+        if (ctx == NULL) {
+            v->not_found = 1;
+            return NGX_OK;
+        }
     }
 
     v->len = 2;
