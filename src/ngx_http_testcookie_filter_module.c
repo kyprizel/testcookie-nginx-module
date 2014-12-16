@@ -1,5 +1,5 @@
 /*
-    v1.14
+    v1.15
 
     Copyright (C) 2011-2014 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
@@ -1072,10 +1072,7 @@ ngx_http_testcookie_ok_variable(ngx_http_request_t *r,
         }
     }
 
-    v->len = 2;
-    if (ctx->ok == 1) {
-        v->len += 1;
-    }
+    v->len = 1;
     v->data = (u_char *) ngx_pcalloc(r->pool, v->len);
     if (v->data == NULL) {
         return NGX_ERROR;

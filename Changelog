@@ -1,3 +1,6 @@
+v1.15
+*) Correct len for $testcookie_ok variable.
+
 v1.14
 *) Always set $testcookie_ variables.
 
