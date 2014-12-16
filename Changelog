@@ -1,3 +1,6 @@
+v1.14
+*) Always set $testcookie_ variables.
+
 v1.13
 *) fixed content type on custom refresh, thanks to LoadLow@github
 
