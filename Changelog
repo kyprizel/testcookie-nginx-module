@@ -1,8 +1,8 @@
 v1.15
-*) Correct len for $testcookie_ok variable.
+*) Correct len for $testcookie_ok variable, thanks to GeniusGuard
 
 v1.14
-*) Always set $testcookie_ variables.
+*) Always set $testcookie_ variables, thanks to GeniusGuard
 
 v1.13
 *) fixed content type on custom refresh, thanks to LoadLow@github
