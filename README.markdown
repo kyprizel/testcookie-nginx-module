@@ -400,8 +400,6 @@ TODO
 ====
 
 *   Code review
-*   IPv6 whitelisting
-*   More encryption algos (?)
 *   Statistics (?)
 
 Bugs
@@ -419,7 +417,7 @@ Support the project
 Copyright & License
 ===================
 
-Copyright (C) 2011-2012 Eldar Zaitov (kyprizel@gmail.com).
+Copyright (C) 2011-2015 Eldar Zaitov (kyprizel@gmail.com).
 
 All rights reserved.
 
