@@ -118,6 +118,14 @@ DIRECTIVES
             rewrite ^/(.*)$ /index.php?$1 last;
         default is off.
 
+    testcookie_httponly_flag
+        adds HttpOnly flag for cookie (on|off)
+        default is off.
+
+    testcookie_secure_flag
+        adds Secure flag for cookie (on|off)
+        default is off.
+
 
 INSTALLATION
 

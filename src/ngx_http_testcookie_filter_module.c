@@ -1,7 +1,7 @@
 /*
-    v1.15
+    v1.16
 
-    Copyright (C) 2011-2014 Eldar Zaitov (eldar@kyprizel.net).
+    Copyright (C) 2011-2015 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
     This module is licenced under the terms of BSD license.
 */
@@ -70,6 +70,8 @@ typedef struct {
     ngx_flag_t                  get_only;
     ngx_flag_t                  deny_keepalive;
     ngx_flag_t                  internal;
+    ngx_flag_t                  secure_flag;
+    ngx_flag_t                  httponly_flag;
 } ngx_http_testcookie_conf_t;
 
 
@@ -292,6 +294,20 @@ static ngx_command_t  ngx_http_testcookie_filter_commands[] = {
       NULL },
 
 #endif
+
+    { ngx_string("testcookie_httponly_flag"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, httponly_flag),
+      NULL },
+
+    { ngx_string("testcookie_secure_flag"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, secure_flag),
+      NULL },
 
       ngx_null_command
 };
@@ -1340,6 +1356,14 @@ ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ct
         len += conf->domain.len;
     }
 
+    if (conf->httponly_flag) {
+        len += sizeof("; HttpOnly") - 1;
+    }
+
+    if (conf->secure_flag) {
+        len += sizeof("; Secure") - 1;
+    }
+
     cookie = ngx_palloc(r->pool, len);
     if (cookie == NULL || ctx->uid_set == NULL) {
         return NGX_ERROR;
@@ -1357,6 +1381,14 @@ ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ct
 
     p = ngx_copy(p, conf->path.data, conf->path.len);
     p = ngx_copy(p, conf->domain.data, conf->domain.len);
+
+    if (conf->httponly_flag) {
+        p = ngx_cpymem(p, (u_char *) "; HttpOnly", sizeof("; HttpOnly") - 1);
+    }
+
+    if (conf->secure_flag) {
+        p = ngx_cpymem(p, (u_char *) "; Secure", sizeof("; Secure") - 1);
+    }
 
     set_cookie = ngx_list_push(&r->headers_out.headers);
     if (set_cookie == NULL) {
@@ -1499,6 +1531,8 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
     conf->refresh_template_lengths = NULL;
     conf->refresh_template_values = NULL;
     conf->internal = NGX_CONF_UNSET;
+    conf->httponly_flag = NGX_CONF_UNSET;
+    conf->secure_flag = NGX_CONF_UNSET;
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     conf->refresh_encrypt_cookie = NGX_CONF_UNSET;
@@ -1552,6 +1586,8 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->deny_keepalive, prev->deny_keepalive, 0);
     ngx_conf_merge_value(conf->redirect_via_refresh, prev->redirect_via_refresh, 0);
     ngx_conf_merge_value(conf->internal, prev->internal, 0);
+    ngx_conf_merge_value(conf->httponly_flag, prev->httponly_flag, 0);
+    ngx_conf_merge_value(conf->secure_flag, prev->secure_flag, 0);
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     ngx_conf_merge_value(conf->refresh_encrypt_cookie, prev->refresh_encrypt_cookie, NGX_CONF_UNSET);

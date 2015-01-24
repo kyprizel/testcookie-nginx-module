@@ -1,3 +1,6 @@
+v1.16
+*) Optional Secure and HttpOnly flags added for cookies
+
 v1.15
 *) Correct len for $testcookie_ok variable, thanks to GeniusGuard
 

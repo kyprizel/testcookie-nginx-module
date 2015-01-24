@@ -262,9 +262,29 @@ testcookie_internal
 **context:** *http, server, location*
 
 Process only GET requests, POST requests will be bypassed.
-Enable testcookie check for internal redirects(disabled by default for optimization purposes!), useful for this type of configs:
+Enable testcookie check for internal redirects (disabled by default for optimization purposes!), useful for this type of configs:
 
     rewrite ^/(.*)$ /index.php?$1 last;
+
+testcookie_httponly_flag
+------------------------
+**syntax:** *testcookie_httponly_flag (on|off);*
+
+**default:** *off*
+
+**context:** *http, server, location*
+
+Enable HttpOnly flag for cookie.
+
+testcookie_secure_flag
+------------------------
+**syntax:** *testcookie_secure_flag (on|off);*
+
+**default:** *off*
+
+**context:** *http, server, location*
+
+Enable Secure flag for cookie.
 
 
 Installation
