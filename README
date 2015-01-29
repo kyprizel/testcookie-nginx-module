@@ -123,8 +123,9 @@ DIRECTIVES
         default is off.
 
     testcookie_secure_flag
-        adds Secure flag for cookie (on|off)
+        adds Secure flag for cookie (on|off|$variable)
         default is off.
+        any variable value except "off" interpreted as True.
 
 
 INSTALLATION

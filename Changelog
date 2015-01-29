@@ -1,3 +1,6 @@
+v1.17
+*) Secure flag can be operated with variables
+
 v1.16
 *) Optional Secure and HttpOnly flags added for cookies
 

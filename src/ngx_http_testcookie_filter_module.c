@@ -1,5 +1,5 @@
 /*
-    v1.16
+    v1.17
 
     Copyright (C) 2011-2015 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
@@ -70,8 +70,8 @@ typedef struct {
     ngx_flag_t                  get_only;
     ngx_flag_t                  deny_keepalive;
     ngx_flag_t                  internal;
-    ngx_flag_t                  secure_flag;
     ngx_flag_t                  httponly_flag;
+    ngx_http_complex_value_t    *secure_flag;
 } ngx_http_testcookie_conf_t;
 
 
@@ -304,7 +304,7 @@ static ngx_command_t  ngx_http_testcookie_filter_commands[] = {
 
     { ngx_string("testcookie_secure_flag"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
+      ngx_http_set_complex_value_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_testcookie_conf_t, secure_flag),
       NULL },
@@ -1334,9 +1334,14 @@ static ngx_int_t
 ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ctx,
     ngx_http_testcookie_conf_t *conf)
 {
+#define TESTCOOKIE_SECURE_FLAG_ON  1
+#define TESTCOOKIE_SECURE_FLAG_OFF 0
+
     u_char           *cookie, *p;
     size_t            len;
     ngx_table_elt_t  *set_cookie, *p3p;
+    ngx_uint_t        secure_flag_set = TESTCOOKIE_SECURE_FLAG_OFF;
+    ngx_str_t         secure_flag;
 
     if (conf->redirect_via_refresh && conf->refresh_template.len > 0) {
         return NGX_OK;
@@ -1360,7 +1365,12 @@ ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ct
         len += sizeof("; HttpOnly") - 1;
     }
 
-    if (conf->secure_flag) {
+    if (conf->secure_flag != NULL
+        && ngx_http_complex_value(r, conf->secure_flag, &secure_flag) == NGX_OK
+        && secure_flag.len
+        && (secure_flag.len != 3 || secure_flag.data[2] != 'f' || secure_flag.data[1] != 'f' || secure_flag.data[0] != 'o'))
+    {
+        secure_flag_set = TESTCOOKIE_SECURE_FLAG_ON;
         len += sizeof("; Secure") - 1;
     }
 
@@ -1386,7 +1396,7 @@ ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ct
         p = ngx_cpymem(p, (u_char *) "; HttpOnly", sizeof("; HttpOnly") - 1);
     }
 
-    if (conf->secure_flag) {
+    if (secure_flag_set == TESTCOOKIE_SECURE_FLAG_ON) {
         p = ngx_cpymem(p, (u_char *) "; Secure", sizeof("; Secure") - 1);
     }
 
@@ -1512,6 +1522,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
      *     conf->fallback.data = NULL;
      *     conf->refresh_template.len = 0;
      *     conf->refresh_template.data = NULL;
+     *     conf->secure_flag = NULL;
      */
 
 
@@ -1532,7 +1543,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
     conf->refresh_template_values = NULL;
     conf->internal = NGX_CONF_UNSET;
     conf->httponly_flag = NGX_CONF_UNSET;
-    conf->secure_flag = NGX_CONF_UNSET;
+    conf->secure_flag = NULL;
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     conf->refresh_encrypt_cookie = NGX_CONF_UNSET;
@@ -1587,7 +1598,6 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->redirect_via_refresh, prev->redirect_via_refresh, 0);
     ngx_conf_merge_value(conf->internal, prev->internal, 0);
     ngx_conf_merge_value(conf->httponly_flag, prev->httponly_flag, 0);
-    ngx_conf_merge_value(conf->secure_flag, prev->secure_flag, 0);
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     ngx_conf_merge_value(conf->refresh_encrypt_cookie, prev->refresh_encrypt_cookie, NGX_CONF_UNSET);
@@ -1634,6 +1644,11 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
             return NGX_CONF_ERROR;
         }
     }
+
+    if (conf->secure_flag == NULL) {
+        conf->secure_flag = prev->secure_flag;
+    }
+
 
     return NGX_CONF_OK;
 }

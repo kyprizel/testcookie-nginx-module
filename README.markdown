@@ -278,13 +278,14 @@ Enable HttpOnly flag for cookie.
 
 testcookie_secure_flag
 ------------------------
-**syntax:** *testcookie_secure_flag (on|off);*
+**syntax:** *testcookie_secure_flag (on|off|$variable);*
 
 **default:** *off*
 
 **context:** *http, server, location*
 
 Enable Secure flag for cookie.
+Any variable value except "off" interpreted as True.
 
 
 Installation
