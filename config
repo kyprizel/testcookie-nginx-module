@@ -3,4 +3,4 @@ HTTP_AUX_FILTER_MODULES="$HTTP_AUX_FILTER_MODULES ngx_http_testcookie_filter_mod
 NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/src/ngx_http_testcookie_filter_module.c"
 NGX_ADDON_DEPS="$NGX_ADDON_DEPS"
 #CFLAGS="$CFLAGS"
-CORE_LIBS="$CORE_LIBS -lssl"
+USE_OPENSSL=YES
