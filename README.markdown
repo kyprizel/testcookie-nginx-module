@@ -173,8 +173,8 @@ Use custom html instead of simple HTTP meta refresh, you need to set cookie manu
 Available all the nginx variables and
 
     $testcookie_nexturl - URL the client should be redirected to, if max_attempts exceeded *testcookie_fallback* value will be here
-    $testcookie_uid_got - cookie value received from client, empty if no cookie or it does not match format
-    $testcookie_uid_set - correct cookie value we're expecting from client
+    $testcookie_got - cookie value received from client, empty if no cookie or it does not match format
+    $testcookie_set - correct cookie value we're expecting from client
     $testcookie_ok - user passed test (1 - passed, 0 - not passed) Note: changed from "yes"/"no" in v1.10
 
 also, if testcookie_refresh_encrypt_cookie enabled there are three more variables:
