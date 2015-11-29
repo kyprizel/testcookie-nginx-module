@@ -1,3 +1,6 @@
+v1.18
+*) Secret len now should be more than 31 bytes
+
 v1.17
 *) Secure flag can be operated with variables
 

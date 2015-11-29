@@ -75,13 +75,13 @@ testcookie_secret
 -----------------
 **syntax:** *testcookie_secret &lt;string&gt;*
 
-**default:** *none*
+**default:** *required configuration directive*
 
 **context:** *http, server, location*
 
-Secret string, used in challenge cookie computation, better to be long but static to prevent cookie reset for legitimate users every server restart.
+Secret string, used in challenge cookie computation, should be 32 bytes or more,
+better to be long but static to prevent cookie reset for legitimate users every server restart.
 If set to *"random"* - new secret will be generated every server restart, not recomended(all cookies with previous key will be invalid),
-If not set, only value based on testcookie_session will be used.
 
 testcookie_session
 ------------------

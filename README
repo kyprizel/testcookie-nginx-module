@@ -30,10 +30,9 @@ DIRECTIVES
         cookie path, useful if you plan to use different keys for locations. default is /
 
     testcookie_secret
-        secret string, used in challenge cookie computation,
+        secret string, used in challenge cookie computation, should be 32 bytes or more,
         better to be long but static to prevent cookie reset for legitimate users every server restart.
         if set to "random" - new secret will be generated every server restart, not recomended(all cookies with previous key will be invalid),
-        if not set, only value based on testcookie_session will be used.
 
     testcookie_session
         sets the challenge generation function input,

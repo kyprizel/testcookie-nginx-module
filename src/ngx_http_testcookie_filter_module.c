@@ -1,5 +1,5 @@
 /*
-    v1.17
+    v1.18
 
     Copyright (C) 2011-2015 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
@@ -1887,10 +1887,18 @@ ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data)
 {
     ngx_str_t  *secret = data;
 
+    if (secret->len < MD5_DIGEST_LENGTH*2) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "Secret value is too short, should be 32 bytes or more\n");
+        return NGX_CONF_ERROR;
+    }
+
+/*
     if (ngx_strcmp(secret->data, "none") == 0) {
         secret->len = 0;
         secret->data = (u_char *) "";
     }
+*/
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     if (ngx_strcmp(secret->data, "random") == 0) {
