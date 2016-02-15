@@ -1,7 +1,7 @@
 /*
-    v1.18
+    v1.19
 
-    Copyright (C) 2011-2015 Eldar Zaitov (eldar@kyprizel.net).
+    Copyright (C) 2011-2016 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
     This module is licenced under the terms of BSD license.
 */
@@ -122,6 +122,7 @@ static char *ngx_http_testcookie_session_slot(ngx_conf_t *cf, ngx_command_t *cmd
 static char *ngx_http_testcookie_refresh_template_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 u_char *ngx_hextobin(u_char *dst, u_char *src, size_t len);
 int ngx_ishex(u_char *src, size_t len);
+static ngx_int_t ngx_http_testcookie_nocache(ngx_http_request_t *r);
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
 static char *ngx_http_testcookie_set_encryption_key(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -393,6 +394,8 @@ ngx_http_send_refresh(ngx_http_request_t *r)
 
     ngx_http_clear_accept_ranges(r);
     ngx_http_clear_last_modified(r);
+    ngx_http_clear_etag(r);
+    ngx_http_testcookie_nocache(r);
 
     rc = ngx_http_send_header(r);
 
@@ -447,7 +450,6 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
     r->headers_out.content_type.len = sizeof("text/html") - 1;
     r->headers_out.content_type.data = (u_char *) "text/html";
 
-
     if (conf->refresh_template_lengths != NULL && conf->refresh_template_values != NULL) {
         if (ngx_http_script_run(r, &compiled_refresh_template, conf->refresh_template_lengths->elts,
                                     0, conf->refresh_template_values->elts) == NULL) {
@@ -470,6 +472,8 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
 
     ngx_http_clear_accept_ranges(r);
     ngx_http_clear_last_modified(r);
+    ngx_http_clear_etag(r);
+    ngx_http_testcookie_nocache(r);
 
     rc = ngx_http_send_header(r);
 
@@ -789,6 +793,7 @@ redirect:
     ngx_http_clear_accept_ranges(r);
     ngx_http_clear_last_modified(r);
     ngx_http_clear_content_length(r);
+    ngx_http_clear_etag(r);
 
     if (conf->redirect_via_refresh) {
         if (conf->refresh_template.len == 0) {
@@ -1153,7 +1158,7 @@ ngx_http_testcookie_nexturl_variable(ngx_http_request_t *r,
     v->valid = 1;
     v->no_cacheable = 1;
     v->not_found = 0;
-    
+
     return NGX_OK;
 }
 
@@ -1206,7 +1211,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
         ngx_memcpy(ctx->encrypt_key, conf->refresh_encrypt_cookie_key, MD5_DIGEST_LENGTH);
         if (conf->refresh_encrypt_cookie_iv == NULL) {
             /*
-                SHA1 eats too much CPU
+                SHA1/SHA2 eats too much CPU
                 do we _really_ need cryptographically strong random here in our case ?
             */
             if (RAND_bytes(ctx->encrypt_iv, MD5_DIGEST_LENGTH) != 1) {
@@ -2216,4 +2221,64 @@ ngx_hextobin(u_char *dst, u_char *src, size_t len)
     }
 
     return dst;
+}
+
+static ngx_int_t
+ngx_http_testcookie_nocache(ngx_http_request_t *r)
+{
+    ngx_uint_t           i;
+    ngx_table_elt_t     *e, *cc, **ccp;
+
+    e = r->headers_out.expires;
+    if (e == NULL) {
+
+        e = ngx_list_push(&r->headers_out.headers);
+        if (e == NULL) {
+            return NGX_ERROR;
+        }
+
+        r->headers_out.expires = e;
+
+        e->hash = 1;
+        ngx_str_set(&e->key, "Expires");
+    }
+
+    e->value.len = sizeof("Mon, 28 Sep 1970 06:00:00 GMT") - 1;
+    e->value.data = (u_char *) "Thu, 01 Jan 1970 00:00:01 GMT";
+
+    ccp = r->headers_out.cache_control.elts;
+    if (ccp == NULL) {
+
+        if (ngx_array_init(&r->headers_out.cache_control, r->pool,
+                           1, sizeof(ngx_table_elt_t *))
+            != NGX_OK)
+        {
+            return NGX_ERROR;
+        }
+
+        ccp = ngx_array_push(&r->headers_out.cache_control);
+        if (ccp == NULL) {
+            return NGX_ERROR;
+        }
+
+        cc = ngx_list_push(&r->headers_out.headers);
+        if (cc == NULL) {
+            return NGX_ERROR;
+        }
+
+        cc->hash = 1;
+        ngx_str_set(&cc->key, "Cache-Control");
+        *ccp = cc;
+
+    } else {
+        for (i = 1; i < r->headers_out.cache_control.nelts; i++) {
+            ccp[i]->hash = 0;
+        }
+
+        cc = ccp[0];
+    }
+
+    ngx_str_set(&cc->value, "no-cache");
+
+    return NGX_OK;
 }
