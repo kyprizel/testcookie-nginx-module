@@ -1,6 +1,6 @@
 v1.20
 *) testcookie_pass variable added (see docs)
-*) module can be compiles as a dynamic module
+*) can be compiled as a dynamic module
 *) changed filename to access than filter b/c testcookie technically is access module 
 
 v1.19
