@@ -151,6 +151,18 @@ testcookie_whitelist
 
 Sets the networks for which the testing will not be used, add search engine networks here. Currently IPv4 CIDR only.
 
+testcookie_pass
+---------------
+**syntax:** *testcookie_pass $variable;*
+
+**default:** *none*
+
+**context:** *http, server*
+
+Sets the variable name to test if cookie check should be bypassed.
+If variable value set to *1* during the request - cookie check will not be performed.
+Can be used for more complex whitelisting.
+
 testcookie_redirect_via_refresh
 -------------------------------
 **syntax:** *testcookie_redirect_via_refresh (on|off);*
@@ -300,6 +312,18 @@ Grab the nginx source code from [nginx.org](http://nginx.org/), for example, the
 
     make
     make install
+
+If you use nginx >= 1.9.11 you can compile Dynamic module.
+
+    wget 'http://nginx.org/download/nginx-1.9.11.tar.gz'
+    tar -xzvf nginx-1.9.11.tar.gz
+    cd nginx-1.9.11/
+    ./configure --add-dynamic-module=/path/to/testcookie-nginx-module
+
+    make
+    make install
+
+Then load "ngx_http_testcookie_filter_module.so" using "load_module" directive.
 
 For using client-side cookie decryption, you need to manually grab [SlowAES](http://code.google.com/p/slowaes/) JavaScript AES implementation,
 patch it(utils/aes.patch) and put it to document root.

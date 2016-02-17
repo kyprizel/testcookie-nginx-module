@@ -1,6 +1,19 @@
-ngx_addon_name=ngx_http_testcookie_filter_module
-HTTP_AUX_FILTER_MODULES="$HTTP_AUX_FILTER_MODULES ngx_http_testcookie_filter_module"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/src/ngx_http_testcookie_filter_module.c"
-NGX_ADDON_DEPS="$NGX_ADDON_DEPS"
-#CFLAGS="$CFLAGS"
-USE_OPENSSL=YES
+ngx_addon_name=ngx_http_testcookie_access_module
+
+# b/c it's a DDoS prevention module - we set module_type=HTTP_AUX_FILTER to run it ASAP
+# if you need some more logic, place the module near the other access phase modules
+
+if test -n "$ngx_module_link"; then
+    ngx_module_type=HTTP_AUX_FILTER
+    ngx_module_name=ngx_http_testcookie_access_module
+    ngx_module_srcs="$ngx_addon_dir/src/ngx_http_testcookie_access_module.c"
+    #ngx_module_order="$ngx_module_name ngx_http_access_module"
+
+    . auto/module
+else
+    HTTP_AUX_FILTER_MODULES="ngx_http_testcookie_access_module $HTTP_AUX_FILTER_MODULES"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/src/ngx_http_testcookie_access_module.c"
+    NGX_ADDON_DEPS="$NGX_ADDON_DEPS"
+    #CFLAGS="$CFLAGS"
+    USE_OPENSSL=YES
+fi

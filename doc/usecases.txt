@@ -188,6 +188,7 @@ server {
 
 
     location = /cookies.html {
+        testcookie off;
         root /var/www/public_html;
     }
 
@@ -198,5 +199,79 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_pass http://127.0.0.1:8080;
+    }
+}
+
+
+7. Whitelisting with "map"
+
+map $remote_addr $trusted {
+    default 0;
+    "127.0.0.1" 1;
+}
+
+server {
+    listen 80;
+    server_name domain.com;
+
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+    location / {
+        testcookie on;
+        testcookie_pass $trusted;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+
+    }
+}
+
+
+8. Dynamic whitelisting example (need to change modules order first!)
+
+server {
+    listen 80;
+    server_name domain.com;
+
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+    location / {
+        testcookie on;
+        auth_request /precheck;
+        testcookie_pass $trusted;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+
+    }
+
+    location = /precheck {
+        proxy_pass http://127.0.0.1:9090;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        auth_request_set $trusted $upstream_http_x_trusted; 
     }
 }
