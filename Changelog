@@ -1,5 +1,5 @@
 v1.20
-*) testcookie_pass variable added (see docs)
+*) testcookie_pass directive added (see docs)
 *) can be compiled as a dynamic module
 *) changed filename to access than filter b/c testcookie technically is access module 
 
