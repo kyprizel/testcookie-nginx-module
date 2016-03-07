@@ -1,3 +1,6 @@
+v1.21
+*) testcookie_refresh_status directive added (see docs)
+
 v1.20
 *) testcookie_pass directive added (see docs)
 *) can be compiled as a dynamic module

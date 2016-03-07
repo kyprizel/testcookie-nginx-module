@@ -1,5 +1,5 @@
 /*
-    v1.20
+    v1.21
 
     Copyright (C) 2011-2016 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
@@ -59,6 +59,7 @@ typedef struct {
     ngx_str_t                   refresh_template;
     ngx_array_t                 *refresh_template_lengths;
     ngx_array_t                 *refresh_template_values;
+    ngx_uint_t                  refresh_status;
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     ngx_flag_t                  refresh_encrypt_cookie;
@@ -95,7 +96,7 @@ static ngx_conf_enum_t  ngx_http_testcookie_access_state[] = {
 };
 
 
-static ngx_int_t ngx_http_send_refresh(ngx_http_request_t *r);
+static ngx_int_t ngx_http_send_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  *conf);
 static ngx_int_t ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  *conf);
 static ngx_int_t ngx_http_testcookie_handler(ngx_http_request_t *r);
 
@@ -123,6 +124,7 @@ static char *ngx_http_testcookie_session_slot(ngx_conf_t *cf, ngx_command_t *cmd
 static char *ngx_http_testcookie_refresh_template_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 u_char *ngx_hextobin(u_char *dst, u_char *src, size_t len);
 int ngx_ishex(u_char *src, size_t len);
+static char *ngx_http_testcookie_refresh_status(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static ngx_int_t ngx_http_testcookie_nocache(ngx_http_request_t *r);
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
@@ -258,6 +260,13 @@ static ngx_command_t  ngx_http_testcookie_access_commands[] = {
       0,
       NULL },
 
+    { ngx_string("testcookie_refresh_status"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_testcookie_refresh_status,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
     { ngx_string("testcookie_deny_keepalive"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_flag_slot,
@@ -366,7 +375,7 @@ static ngx_str_t  ngx_http_testcookie_enc_key = ngx_string("testcookie_enc_key")
 #endif
 
 static ngx_int_t
-ngx_http_send_refresh(ngx_http_request_t *r)
+ngx_http_send_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  *conf)
 {
     u_char       *p, *location;
     size_t        len, size;
@@ -384,7 +393,7 @@ ngx_http_send_refresh(ngx_http_request_t *r)
            + escape + len
            + sizeof(ngx_http_msie_refresh_tail) - 1;
 
-    r->err_status = NGX_HTTP_OK;
+    r->err_status = conf->refresh_status;
 
     r->headers_out.content_type_len = sizeof("text/html") - 1;
     r->headers_out.content_type.len = sizeof("text/html") - 1;
@@ -452,7 +461,7 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
     ngx_chain_t   out;
     ngx_str_t     compiled_refresh_template;
 
-    r->err_status = NGX_HTTP_OK;
+    r->err_status = conf->refresh_status;
 
     r->headers_out.content_type_len = sizeof("text/html") - 1;
     r->headers_out.content_type.len = sizeof("text/html") - 1;
@@ -484,7 +493,6 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
     ngx_http_testcookie_nocache(r);
 
     rc = ngx_http_send_header(r);
-
     if (rc == NGX_ERROR) {
         return rc;
     }
@@ -815,7 +823,7 @@ redirect:
 
     if (conf->redirect_via_refresh) {
         if (conf->refresh_template.len == 0) {
-            return ngx_http_send_refresh(r);
+            return ngx_http_send_refresh(r, conf);
         } else {
             return ngx_http_send_custom_refresh(r, conf);
         }
@@ -1565,6 +1573,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
     conf->redirect_via_refresh = NGX_CONF_UNSET;
     conf->refresh_template_lengths = NULL;
     conf->refresh_template_values = NULL;
+    conf->refresh_status = NGX_CONF_UNSET_UINT;
     conf->internal = NGX_CONF_UNSET;
     conf->httponly_flag = NGX_CONF_UNSET;
     conf->secure_flag = NULL;
@@ -1599,6 +1608,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_str_value(conf->fallback, prev->fallback, "");
     ngx_conf_merge_str_value(conf->refresh_template, prev->refresh_template, "");
+    ngx_conf_merge_uint_value(conf->refresh_status, prev->refresh_status, NGX_HTTP_OK);
 
     ngx_conf_merge_value(conf->max_attempts, prev->max_attempts, RFC1945_ATTEMPTS);
     ngx_conf_merge_sec_value(conf->expires, prev->expires, 0);
@@ -2304,4 +2314,26 @@ ngx_http_testcookie_nocache(ngx_http_request_t *r)
     ngx_str_set(&cc->value, "no-cache");
 
     return NGX_OK;
+}
+
+static char *
+ngx_http_testcookie_refresh_status(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_testcookie_conf_t  *ucf = conf;
+
+    ngx_int_t   n;
+    ngx_str_t  *value;
+
+    value = cf->args->elts;
+
+    n = ngx_atoi(value[1].data, value[1].len);
+    if (n < 100 || n > 599) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid response code \"%V\"", &value[1]);
+        return NGX_CONF_ERROR;
+    }
+
+    ucf->refresh_status = n;
+
+    return NGX_CONF_OK;
 }

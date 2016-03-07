@@ -195,6 +195,17 @@ also, if testcookie_refresh_encrypt_cookie enabled there are three more variable
     $testcookie_enc_iv - encryption iv (32 hex digits)
     $testcookie_enc_sec - encrypted cookie value (32 hex digits)
 
+testcookie_refresh_status
+-------------------------
+**syntax:** *testcookie_refresh_status &lt;code&gt;*
+
+**default:** *200*
+
+**context:** *http, server, location*
+
+Use custom HTTP status code when serving html.
+
+
 testcookie_deny_keepalive
 -------------------------
 **syntax:** *testcookie_deny_keepalive (on|off);*

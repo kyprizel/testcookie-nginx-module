@@ -82,6 +82,9 @@ DIRECTIVES
             $testcookie_enc_iv - encryption iv (32 hex digits)
             $testcookie_enc_sec - encrypted cookie value (32 hex digits)
 
+    testcookie_refresh_status
+        custom HTTP response status. 200 by default.
+
     testcookie_deny_keepalive
         close connection just after setting the cookie, no reason to keep connections with bots (on|off)
         default is off.
