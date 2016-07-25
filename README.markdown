@@ -284,7 +284,6 @@ testcookie_internal
 
 **context:** *http, server, location*
 
-Process only GET requests, POST requests will be bypassed.
 Enable testcookie check for internal redirects (disabled by default for optimization purposes!), useful for this type of configs:
 
     rewrite ^/(.*)$ /index.php?$1 last;
