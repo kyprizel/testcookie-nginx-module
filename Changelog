@@ -1,3 +1,6 @@
+v1.22
+*) openssl 1.1.0 compatible
+
 v1.21
 *) testcookie_refresh_status directive added (see docs)
 

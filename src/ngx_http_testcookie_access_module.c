@@ -1,7 +1,7 @@
 /*
-    v1.21
+    v1.22
 
-    Copyright (C) 2011-2016 Eldar Zaitov (eldar@kyprizel.net).
+    Copyright (C) 2011-2017 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
     This module is licenced under the terms of BSD license.
 */
@@ -926,7 +926,12 @@ ngx_http_testcookie_enc_set_variable(ngx_http_request_t *r,
     ngx_http_testcookie_ctx_t   *ctx;
     ngx_http_testcookie_conf_t  *conf;
 
+#if OPENSSL_VERSION_NUMBER >= 0x10100003L
+    EVP_CIPHER_CTX              *evp_ctx;
+#else
     EVP_CIPHER_CTX              evp_ctx;
+#endif
+
     u_char                      *c;
     int                         len;
 
@@ -964,6 +969,26 @@ ngx_http_testcookie_enc_set_variable(ngx_http_request_t *r,
         v->not_found = 1;
         return NGX_ERROR;
     }
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100003L
+    evp_ctx = EVP_CIPHER_CTX_new();
+    EVP_CipherInit_ex(evp_ctx, EVP_aes_128_cbc(), NULL, NULL, NULL, 1);
+
+    if (!EVP_CipherInit_ex(evp_ctx, NULL, NULL, ctx->encrypt_key, ctx->encrypt_iv, 1)) {
+        v->not_found = 1;
+        EVP_CIPHER_CTX_free(evp_ctx);
+        return NGX_ERROR;
+    }
+
+    if (!EVP_CipherUpdate(evp_ctx, c, &len, ctx->uid_set, MD5_DIGEST_LENGTH)) {
+        v->not_found = 1;
+        EVP_CIPHER_CTX_free(evp_ctx);
+        return NGX_ERROR;
+    }
+
+    EVP_CIPHER_CTX_free(evp_ctx);
+
+#else
     EVP_CIPHER_CTX_init(&evp_ctx);
     if (!EVP_EncryptInit_ex(&evp_ctx, EVP_aes_128_cbc(), NULL, ctx->encrypt_key, ctx->encrypt_iv)) {
         v->not_found = 1;
@@ -976,7 +1001,6 @@ ngx_http_testcookie_enc_set_variable(ngx_http_request_t *r,
         EVP_CIPHER_CTX_cleanup(&evp_ctx);
         return NGX_ERROR;
     }
-
 /*
     if (!EVP_EncryptFinal_ex(&evp_ctx, c, &len)) {
         v->not_found = 1;
@@ -985,6 +1009,7 @@ ngx_http_testcookie_enc_set_variable(ngx_http_request_t *r,
     }
 */
     EVP_CIPHER_CTX_cleanup(&evp_ctx);
+#endif
 
     ngx_hex_dump(v->data, c, MD5_DIGEST_LENGTH);
 
