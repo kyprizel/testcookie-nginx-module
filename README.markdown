@@ -248,7 +248,7 @@ Encrypt cookie variable, used with *testcookie_refresh_template* to force client
 
 testcookie_refresh_encrypt_cookie_key
 -------------------------------------
-**syntax:** *testcookie_refresh_encrypt_cookie_key &lt;32 hex digits|random&gt;*
+**syntax:** *testcookie_refresh_encrypt_cookie_key &lt;32 hex digits|random&gt;* // random doesn't seem to work?
 
 **default:** *required directive if encryption enabled*
 
