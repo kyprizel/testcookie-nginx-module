@@ -309,6 +309,16 @@ testcookie_secure_flag
 Enable Secure flag for cookie.
 Any variable value except "off" interpreted as True.
 
+testcookie_port_in_redirect
+---------------------------
+**syntax:** *testcookie_port_in_redirect (on|off);*
+
+**default:** *off*
+
+**context:** *http, server, location*
+
+Expose port in redirect.
+
 
 Installation
 ============
@@ -452,7 +462,7 @@ Support the project
 Copyright & License
 ===================
 
-Copyright (C) 2011-2015 Eldar Zaitov (kyprizel@gmail.com).
+Copyright (C) 2011-2017 Eldar Zaitov (kyprizel@gmail.com).
 
 All rights reserved.
 

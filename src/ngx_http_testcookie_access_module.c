@@ -1,5 +1,5 @@
 /*
-    v1.22
+    v1.23
 
     Copyright (C) 2011-2017 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
@@ -72,6 +72,7 @@ typedef struct {
     ngx_flag_t                  deny_keepalive;
     ngx_flag_t                  internal;
     ngx_flag_t                  httponly_flag;
+    ngx_flag_t                  port_in_redirect;
     ngx_http_complex_value_t    *secure_flag;
     ngx_http_complex_value_t    *pass_var;
 } ngx_http_testcookie_conf_t;
@@ -325,6 +326,13 @@ static ngx_command_t  ngx_http_testcookie_access_commands[] = {
       ngx_http_set_complex_value_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_testcookie_conf_t, pass_var),
+      NULL },
+
+    { ngx_string("testcookie_port_in_redirect"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_flag_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, port_in_redirect),
       NULL },
 
       ngx_null_command
@@ -674,7 +682,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
             port = ntohs(sin->sin_port);
             break;
         }
-        if (port > 0 && port != 80 && port != 443 && port < 65535) {
+        if (port > 0 && port < 65535 && conf->port_in_redirect) {
             len += sizeof(":65535") - 1;
         }
     }
@@ -736,7 +744,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         p = ngx_copy(p, r->headers_in.server.data, r->headers_in.server.len);
 #endif
 
-        if (port > 0 && port != 80 && port != 443 && port < 65535) {
+        if (port > 0 && port < 65535 && conf->port_in_redirect) {
             len -= sizeof(":65535") - 1;
             len += ngx_sprintf(p, ":%ui", port) - p;
             p = ngx_sprintf(p, ":%ui", port);
@@ -1603,6 +1611,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
     conf->httponly_flag = NGX_CONF_UNSET;
     conf->secure_flag = NULL;
     conf->pass_var = NULL;
+    conf->port_in_redirect = NGX_CONF_UNSET;
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     conf->refresh_encrypt_cookie = NGX_CONF_UNSET;
@@ -1658,6 +1667,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->redirect_via_refresh, prev->redirect_via_refresh, 0);
     ngx_conf_merge_value(conf->internal, prev->internal, 0);
     ngx_conf_merge_value(conf->httponly_flag, prev->httponly_flag, 0);
+    ngx_conf_merge_value(conf->port_in_redirect, prev->port_in_redirect, 0);
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     ngx_conf_merge_value(conf->refresh_encrypt_cookie, prev->refresh_encrypt_cookie, NGX_CONF_UNSET);

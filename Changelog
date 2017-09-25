@@ -1,3 +1,6 @@
+v1.23
+*) testcookie_port_in_redirect config variable added
+
 v1.22
 *) openssl 1.1.0 compatible
 
