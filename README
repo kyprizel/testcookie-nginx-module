@@ -162,7 +162,7 @@ INSTALLATION
         make
         make install
 
-    Then load "ngx_http_testcookie_filter_module.so" using "load_module" directive.
+    Then load "ngx_http_testcookie_access_module.so" using "load_module" directive.
 
 
     For using client-side cookie decryption,
