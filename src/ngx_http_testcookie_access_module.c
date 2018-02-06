@@ -2193,6 +2193,7 @@ ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 
 #if (NGX_HAVE_INET6)
     case AF_INET6:
+    /* fall through */
 
         for (i = 2; i; i--) {
             rc = ngx_radix128tree_insert(ucf->whitelist6, cidr.u.in6.addr.s6_addr,
@@ -2227,6 +2228,7 @@ ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 
 #endif
 
+    /* fall through */
     default: /* AF_INET */
 
         cidr.u.in.addr = ntohl(cidr.u.in.addr);
