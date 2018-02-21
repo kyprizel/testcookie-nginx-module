@@ -1,3 +1,6 @@
+v1.24
+*) disable caching for module variables
+
 v1.23
 *) testcookie_port_in_redirect config variable added
 

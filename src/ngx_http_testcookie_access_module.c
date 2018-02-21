@@ -1,7 +1,7 @@
 /*
-    v1.23
+    v1.24
 
-    Copyright (C) 2011-2017 Eldar Zaitov (eldar@kyprizel.net).
+    Copyright (C) 2011-2018 Eldar Zaitov (eldar@kyprizel.net).
     All rights reserved.
     This module is licenced under the terms of BSD license.
 */
@@ -875,7 +875,7 @@ ngx_http_testcookie_got_variable(ngx_http_request_t *r,
     }
 
     v->valid = 1;
-    v->no_cacheable = 0;
+    v->no_cacheable = 1;
     v->not_found = 0;
 
     ngx_memcpy(v->data, ctx->uid_got, MD5_DIGEST_LENGTH*2);
@@ -918,7 +918,7 @@ ngx_http_testcookie_enc_key_variable(ngx_http_request_t *r,
     }
 
     v->valid = 1;
-    v->no_cacheable = 0;
+    v->no_cacheable = 1;
     v->not_found = 0;
 
     ngx_hex_dump(v->data, ctx->encrypt_key, MD5_DIGEST_LENGTH);
@@ -969,7 +969,7 @@ ngx_http_testcookie_enc_set_variable(ngx_http_request_t *r,
     }
 
     v->valid = 1;
-    v->no_cacheable = 0;
+    v->no_cacheable = 1;
     v->not_found = 0;
 
     c = (u_char *) ngx_palloc(r->pool, MD5_DIGEST_LENGTH);
@@ -1058,7 +1058,7 @@ ngx_http_testcookie_enc_iv_variable(ngx_http_request_t *r,
     }
 
     v->valid = 1;
-    v->no_cacheable = 0;
+    v->no_cacheable = 1;
     v->not_found = 0;
 
     ngx_hex_dump(v->data, ctx->encrypt_iv, MD5_DIGEST_LENGTH);
@@ -1081,7 +1081,7 @@ ngx_http_testcookie_timestamp_variable(ngx_http_request_t *r,
 
     v->len = ngx_sprintf(p, "%P", ngx_time()) - p;
     v->valid = 1;
-    v->no_cacheable = 0;
+    v->no_cacheable = 1;
     v->not_found = 0;
     v->data = p;
 
@@ -1119,7 +1119,7 @@ ngx_http_testcookie_set_variable(ngx_http_request_t *r,
     }
 
     v->valid = 1;
-    v->no_cacheable = 0;
+    v->no_cacheable = 1;
     v->not_found = 0;
 
     ngx_hex_dump(v->data, ctx->uid_set, MD5_DIGEST_LENGTH);
@@ -1215,7 +1215,7 @@ ngx_http_testcookie_nexturl_variable(ngx_http_request_t *r,
     }
 
     v->valid = 1;
-    v->no_cacheable = 1;
+    v->no_cacheable = 0;
     v->not_found = 0;
 
     return NGX_OK;
@@ -1502,19 +1502,19 @@ ngx_http_testcookie_add_variables(ngx_conf_t *cf)
     ngx_http_variable_t  *var;
 
 
-    var = ngx_http_add_variable(cf, &ngx_http_testcookie_got, NGX_HTTP_VAR_NOHASH);
+    var = ngx_http_add_variable(cf, &ngx_http_testcookie_got, NGX_HTTP_VAR_NOHASH|NGX_HTTP_VAR_NOCACHEABLE);
     if (var == NULL) {
         return NGX_ERROR;
     }
     var->get_handler = ngx_http_testcookie_got_variable;
 
-    var = ngx_http_add_variable(cf, &ngx_http_testcookie_set, NGX_HTTP_VAR_NOHASH);
+    var = ngx_http_add_variable(cf, &ngx_http_testcookie_set, NGX_HTTP_VAR_NOHASH|NGX_HTTP_VAR_NOCACHEABLE);
     if (var == NULL) {
         return NGX_ERROR;
     }
     var->get_handler = ngx_http_testcookie_set_variable;
 
-    var = ngx_http_add_variable(cf, &ngx_http_testcookie_ok, NGX_HTTP_VAR_NOHASH);
+    var = ngx_http_add_variable(cf, &ngx_http_testcookie_ok, NGX_HTTP_VAR_NOHASH|NGX_HTTP_VAR_NOCACHEABLE);
     if (var == NULL) {
         return NGX_ERROR;
     }
@@ -1533,19 +1533,19 @@ ngx_http_testcookie_add_variables(ngx_conf_t *cf)
     var->get_handler = ngx_http_testcookie_timestamp_variable;
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
-    var = ngx_http_add_variable(cf, &ngx_http_testcookie_enc_key, NGX_HTTP_VAR_NOHASH);
+    var = ngx_http_add_variable(cf, &ngx_http_testcookie_enc_key, NGX_HTTP_VAR_NOHASH|NGX_HTTP_VAR_NOCACHEABLE);
     if (var == NULL) {
         return NGX_ERROR;
     }
     var->get_handler = ngx_http_testcookie_enc_key_variable;
 
-    var = ngx_http_add_variable(cf, &ngx_http_testcookie_enc_iv, NGX_HTTP_VAR_NOHASH);
+    var = ngx_http_add_variable(cf, &ngx_http_testcookie_enc_iv, NGX_HTTP_VAR_NOHASH|NGX_HTTP_VAR_NOCACHEABLE);
     if (var == NULL) {
         return NGX_ERROR;
     }
     var->get_handler = ngx_http_testcookie_enc_iv_variable;
 
-    var = ngx_http_add_variable(cf, &ngx_http_testcookie_enc_set, NGX_HTTP_VAR_NOHASH);
+    var = ngx_http_add_variable(cf, &ngx_http_testcookie_enc_set, NGX_HTTP_VAR_NOHASH|NGX_HTTP_VAR_NOCACHEABLE);
     if (var == NULL) {
         return NGX_ERROR;
     }

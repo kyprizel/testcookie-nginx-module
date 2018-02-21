@@ -346,7 +346,7 @@ If you use nginx >= 1.9.11 you can compile Dynamic module.
 Then load "ngx_http_testcookie_access_module.so" using "load_module" directive.
 
 For using client-side cookie decryption, you need to manually grab [SlowAES](http://code.google.com/p/slowaes/) JavaScript AES implementation,
-patch it(utils/aes.patch) and put it to document root.
+**patch it(utils/aes.patch)** and put it to document root.
 
 Compatibility
 =============
