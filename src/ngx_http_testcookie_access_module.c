@@ -2055,7 +2055,7 @@ ngx_http_testcookie_time_interval(ngx_conf_t *cf, ngx_command_t *cmd, void *conf
     value = cf->args->elts;
 
     n = ngx_atoi(value[1].data, value[1].len);
-    if (n < 0) {
+    if (n <= 0) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "invalid time_interval \"%V\"", &value[1]);
         return NGX_CONF_ERROR;
