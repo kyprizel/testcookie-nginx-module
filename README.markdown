@@ -30,6 +30,17 @@ off - Disable module
 var - Don't intercept requests, only set module variables.
 
 
+testcookie_time_interval
+----------
+**syntax:** *testcookie_time_interval &lt;integer&gt;*
+
+**default:** *300*
+
+**context:** *http, server, location*
+
+time (second) for change cookie value. 
+
+
 testcookie_name
 ---------------
 **syntax:** *testcookie_name &lt;string&gt;*
