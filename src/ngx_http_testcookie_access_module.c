@@ -43,7 +43,7 @@ typedef struct {
     ngx_str_t                   arg;
     ngx_str_t                   secret;
     ngx_http_complex_value_t    session_key;
-
+    ngx_int_t					time_interval;
     ngx_int_t                   max_attempts;
 
     ngx_radix_tree_t            *whitelist;
@@ -118,6 +118,7 @@ static char *ngx_http_testcookie_expires(ngx_conf_t *cf, ngx_command_t *cmd, voi
 static char *ngx_http_testcookie_p3p(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_testcookie_max_attempts(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_testcookie_time_interval(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_testcookie_whitelist_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy, void *conf);
 static char *ngx_http_testcookie_fallback_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -222,6 +223,12 @@ static ngx_command_t  ngx_http_testcookie_access_commands[] = {
     { ngx_string("testcookie_max_attempts"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_testcookie_max_attempts,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+	{ ngx_string("testcookie_time_interval"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_testcookie_time_interval,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
@@ -1334,9 +1341,20 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
     }
 
     check = &value;
-
+	u_char *salt = ngx_pcalloc(r->pool,15);
+    if (salt == NULL) {
+       return NULL;
+    }
+	ngx_int_t time_interval = (ngx_int_t)ucf->time_interval;
+    time_t time = ngx_time();
+    ngx_int_t sec = time / time_interval;
+	ngx_snprintf(salt, 15, "%d", sec);
+	ngx_str_t salt_str;
+    ngx_str_set(&salt_str,salt);
+	salt_str.len = ngx_strlen(salt);
     ngx_md5_init(&md5);
     ngx_md5_update(&md5, check->data, check->len);
+	ngx_md5_update(&md5, salt_str.data, salt_str.len);
     if (conf->secret.len > 0) {
         ngx_md5_update(&md5, conf->secret.data, conf->secret.len);
     }
@@ -1362,7 +1380,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "ctx uid cookie: \"%V\"", &ctx->cookie);
-
+	
 #if (NGX_DEBUG)
     cookies = r->headers_in.cookies.elts;
 
@@ -1389,7 +1407,6 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
     if (ngx_memcmp(ctx->uid_got, complex_hash_hex, MD5_DIGEST_LENGTH*2) == 0) {
         ctx->ok = 1;
     }
-
     return ctx;
 }
 
@@ -1594,6 +1611,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
     conf->enable = NGX_CONF_UNSET;
     conf->expires = NGX_CONF_UNSET;
     conf->max_attempts = NGX_CONF_UNSET;
+	conf->time_interval = NGX_CONF_UNSET;
     conf->whitelist = NULL;
 #if (NGX_HAVE_INET6)
     conf->whitelist6 = NULL;
@@ -1645,6 +1663,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_uint_value(conf->refresh_status, prev->refresh_status, NGX_HTTP_OK);
 
     ngx_conf_merge_value(conf->max_attempts, prev->max_attempts, RFC1945_ATTEMPTS);
+	ngx_conf_merge_value(conf->time_interval, prev->time_interval, 300);
     ngx_conf_merge_sec_value(conf->expires, prev->expires, 0);
 
     if (conf->whitelist == NULL) {
@@ -2015,6 +2034,29 @@ ngx_http_testcookie_max_attempts(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     ucf->max_attempts = n;
+
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_testcookie_time_interval(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_testcookie_conf_t  *ucf = conf;
+
+    ngx_int_t   n;
+    ngx_str_t  *value;
+
+    value = cf->args->elts;
+
+    n = ngx_atoi(value[1].data, value[1].len);
+    if (n <= 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "invalid time_interval \"%V\"", &value[1]);
+        return NGX_CONF_ERROR;
+    }
+
+
+    ucf->time_interval = n;
 
     return NGX_CONF_OK;
 }
