@@ -1341,17 +1341,17 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
     }
 
     check = &value;
-	u_char *salt = ngx_palloc(r->pool,15);
+	u_char *salt = ngx_pcalloc(r->pool,15);
     if (salt == NULL) {
        return NULL;
     }
-	memset(salt, 0, sizeof(salt));
 	ngx_int_t time_interval = (ngx_int_t)ucf->time_interval;
     time_t time = ngx_time();
     ngx_int_t sec = time / time_interval;
-	ngx_snprintf(salt, sizeof(salt), "%d", sec);
+	ngx_snprintf(salt, 15, "%d", sec);
 	ngx_str_t salt_str;
     ngx_str_set(&salt_str,salt);
+	salt_str.len = ngx_strlen(salt);
     ngx_md5_init(&md5);
     ngx_md5_update(&md5, check->data, check->len);
 	ngx_md5_update(&md5, salt_str.data, salt_str.len);
