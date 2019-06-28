@@ -9,6 +9,19 @@ DESCRIPTION
     be encrypted with AES-128 in CBC mode using custom/random key and iv,
     and then decrypted at client side with JavaScript.
 
+    If use Redis feature, only IPs which are stored in Redis need to resolve challenge, remaining is allowed (allow all but block some)
+    We can use any Redis client to dynamically add or new IP to blacklist without reloading Nginx. Example:
+    ## select DB which store blacklist
+    127.0.0.1:6379> SELECT 3
+
+    ##add new key-value to block permanent
+    127.0.0.1:6379> SET malicious_ip malicious_ip
+    or block in some times:
+    127.0.0.1:6379>SETEX malicious_ip blocktime_in_seconds malicious_ip
+
+    ### delete IP:
+    127.0.0.1:6379>DEL not_malicious_ip_anymore
+
 
 DIRECTIVES
 
@@ -138,9 +151,24 @@ DIRECTIVES
         default is off.
 
 
-INSTALLATION
+    testcookie_redis
+	if enable, only IPs in logical database number which configured in testcookie_redisdb is required to verify, all are allow
+        on - enable module, using Redis to store blacklist IPs
+        off - disable module with Redis intergration
+        var - don't intercept requests, only set cookie vars
 
-    Grab the nginx source code from nginx.org (<http://nginx.org/>), for
+    testcookie_redisip
+        Redis server's IP
+    
+    testcookie_redisport
+        Redis port
+    
+    testcookie_redisdb
+        Redis logical DB used for storing blacklist IPs
+
+INSTALLATION
+    
+    Install hiredis library, grab the nginx source code from nginx.org (<http://nginx.org/>), for
     example, the version 1.1.15 (see nginx compatibility), and then build
     the source with this module:
 
@@ -178,6 +206,13 @@ EXAMPLE CONFIGURATION
     http {
         #default config, module disabled
         testcookie off;
+	
+	#config for redis
+        testcookie_reis off;
+	testcookie_redisip 127.0.0.1;
+        testcookie_redisport 6379;
+        testcookie_redisdb 3;
+
 
         #setting cookie name
         testcookie_name BPC;
@@ -240,6 +275,15 @@ EXAMPLE CONFIGURATION
             location / {
                 #enable module for specific location
                 testcookie on;
+                proxy_set_header   Host             $host;
+                proxy_set_header   X-Real-IP        $remote_addr;
+                proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;
+                proxy_pass http://127.0.0.1:80;
+            }
+
+            location /dynamic_block {
+                #enable testcookie with redis support for this specific location, then we can dynamically add IP to block without reloading Nginx
+                testcookie_redis on;
                 proxy_set_header   Host             $host;
                 proxy_set_header   X-Real-IP        $remote_addr;
                 proxy_set_header   X-Forwarded-For  $proxy_add_x_forwarded_for;

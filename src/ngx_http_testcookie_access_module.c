@@ -10,6 +10,10 @@
 #include <ngx_core.h>
 #include <ngx_http.h>
 #include <ngx_md5.h>
+#include <hiredis/hiredis.h>
+
+redisContext *c;
+redisReply *reply;
 
 #define REFRESH_COOKIE_ENCRYPTION
 
@@ -31,12 +35,15 @@
 #define RFC1945_ATTEMPTS    4
 
 typedef struct {
+    ngx_int_t                  redisdb;
+    ngx_int_t                  redisport;
     ngx_uint_t                  enable;
-
+    ngx_uint_t                  enable_redis;
     ngx_str_t                   name;
     ngx_str_t                   domain;
     ngx_str_t                   path;
     ngx_str_t                   p3p;
+    ngx_str_t                   redisip;
 
     time_t                      expires;
 
@@ -96,7 +103,6 @@ static ngx_conf_enum_t  ngx_http_testcookie_access_state[] = {
     { ngx_null_string, 0 }
 };
 
-
 static ngx_int_t ngx_http_send_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  *conf);
 static ngx_int_t ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  *conf);
 static ngx_int_t ngx_http_testcookie_handler(ngx_http_request_t *r);
@@ -148,14 +154,43 @@ static ngx_conf_post_handler_pt  ngx_http_testcookie_p3p_p = ngx_http_testcookie
 static ngx_conf_post_handler_pt  ngx_http_testcookie_secret_p = ngx_http_testcookie_secret;
 
 static ngx_command_t  ngx_http_testcookie_access_commands[] = {
-
-    { ngx_string("testcookie"),
+    {ngx_string("testcookie"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF
         |NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_testcookie_conf_t, enable),
       ngx_http_testcookie_access_state },
+
+      { ngx_string("testcookie_redisip"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, redisip),
+      NULL },
+
+      { ngx_string("testcookie_redisport"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, redisport),
+      NULL },
+
+    {ngx_string("testcookie_redisdb"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_num_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, redisdb),
+      NULL },
+
+    { ngx_string("testcookie_redis"),
+      NNGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF
+        |NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_enum_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, enable_redis),
+      ngx_http_testcookie_access_state },
+
     { ngx_string("testcookie_name"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -388,7 +423,7 @@ ngx_http_send_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  *conf)
     u_char       *p, *location;
     size_t        len, size;
     uintptr_t     escape;
-    ngx_int_t     rc;
+ngx_int_t     rc;
     ngx_buf_t    *b;
     ngx_chain_t   out;
 
@@ -556,11 +591,57 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     if (r != r->main) {
         return NGX_DECLINED;
     }
+	char Host[256];
+	struct timeval timeout = { 1, 500000 }; // 1.5 seconds
+    
 
+    conf = ngx_http_get_module_loc_conf(r, ngx_http_testcookie_access_module);
+    if (!conf || (conf->enable == NGX_HTTP_TESTCOOKIE_OFF && conf->enable_redis == NGX_HTTP_TESTCOOKIE_OFF) ) {
+        return NGX_DECLINED;
+    }
+    const char *fmt_base = "%.*s";
+	snprintf((char *) Host, sizeof(Host), fmt_base,
+				r->connection->addr_text.len, r->connection->addr_text.data);
+
+    if (conf->enable_redis == NGX_HTTP_TESTCOOKIE_ON) {
+	    if (c == NULL) {
+            ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,"redis server: %s %d\n", conf->redisip.data,conf->redisport);
+		    c = redisConnectWithTimeout((char *)conf->redisip.data, conf->redisport, timeout);
+
+		    if (c == NULL || c->err) {
+				if (c) {
+                    ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
+					"smt wrong Redis: %s\n", c->errstr);
+					return NGX_OK;
+				} else {
+					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
+							"redis connection error: can't allocate redis context\n");
+				}
+			}
+	}
+    if (!c->err) {        
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,"Redis GET %s:\n", Host);
+        reply = redisCommand(c, "SELECT %d", conf->redisdb);
+		reply = redisCommand(c, "GET %s", Host);
+		if (reply->str == NULL) {
+			freeReplyObject(reply);
+			return NGX_OK;
+		}
+
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
+						"Redis result GET %s: %s\n", Host, reply->str);
+
+        ngx_str_t r_uri;
+        r_uri = r->uri;
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "Redis URI: %s\n", r_uri.data);
+        conf->enable = NGX_HTTP_TESTCOOKIE_ON;
+        }
+	}
+    
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "request type: %d", r->internal);
 
-    conf = ngx_http_get_module_loc_conf(r, ngx_http_testcookie_access_module);
+    
     if (!conf || conf->enable == NGX_HTTP_TESTCOOKIE_OFF) {
         return NGX_DECLINED;
     }
@@ -838,6 +919,18 @@ redirect:
     }
 
     return rc;
+}
+static char *
+ngx_http_testcookie_p3p(ngx_conf_t *cf, void *post, void *data)
+{
+    ngx_str_t  *p3p = data;
+
+    if (ngx_strcmp(p3p->data, "none") == 0) {
+        p3p->len = 0;
+        p3p->data = (u_char *) "";
+    }
+
+    return NGX_CONF_OK;
 }
 
 static ngx_int_t
@@ -1288,6 +1381,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
 
         /* AF_INET only */
         sin = (struct sockaddr_in *) r->connection->sockaddr;
+        ngx_log_error(NGX_LOG_INFO, r->connection->log, 0, "sock_in: %l", ntohl(sin->sin_addr.s_addr));
 
         if (conf->whitelist != NULL) {
             vv = (ngx_http_variable_value_t *) ngx_radix32tree_find(conf->whitelist, ntohl(sin->sin_addr.s_addr));
@@ -1590,8 +1684,10 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
      *     conf->pass_var = NULL;
      */
 
-
+    conf->redisport=NGX_CONF_UNSET;
+    conf->redisdb=NGX_CONF_UNSET;
     conf->enable = NGX_CONF_UNSET;
+    conf->enable_redis = NGX_CONF_UNSET;
     conf->expires = NGX_CONF_UNSET;
     conf->max_attempts = NGX_CONF_UNSET;
     conf->whitelist = NULL;
@@ -1632,14 +1728,14 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_http_script_compile_t   sc;
 
     ngx_conf_merge_uint_value(conf->enable, prev->enable, NGX_HTTP_TESTCOOKIE_OFF);
-
+    ngx_conf_merge_uint_value(conf->enable_redis, prev->enable_redis, NGX_HTTP_TESTCOOKIE_OFF);
     ngx_conf_merge_str_value(conf->name, prev->name, DEFAULT_COOKIE_NAME);
     ngx_conf_merge_str_value(conf->domain, prev->domain, "");
     ngx_conf_merge_str_value(conf->path, prev->path, "; path=/");
     ngx_conf_merge_str_value(conf->p3p, prev->p3p, "");
     ngx_conf_merge_str_value(conf->arg, prev->arg, "");
     ngx_conf_merge_str_value(conf->secret, prev->secret, "");
-
+    ngx_conf_merge_str_value(conf->redisip, prev->redisip, "");
     ngx_conf_merge_str_value(conf->fallback, prev->fallback, "");
     ngx_conf_merge_str_value(conf->refresh_template, prev->refresh_template, "");
     ngx_conf_merge_uint_value(conf->refresh_status, prev->refresh_status, NGX_HTTP_OK);
@@ -1668,6 +1764,8 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_value(conf->internal, prev->internal, 0);
     ngx_conf_merge_value(conf->httponly_flag, prev->httponly_flag, 0);
     ngx_conf_merge_value(conf->port_in_redirect, prev->port_in_redirect, 0);
+    ngx_conf_merge_value(conf->redisport, prev->redisport, 6379);
+    ngx_conf_merge_value(conf->redisdb, prev->redisdb, 3);
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     ngx_conf_merge_value(conf->refresh_encrypt_cookie, prev->refresh_encrypt_cookie, NGX_CONF_UNSET);
@@ -1825,19 +1923,6 @@ ngx_http_testcookie_expires(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-
-static char *
-ngx_http_testcookie_p3p(ngx_conf_t *cf, void *post, void *data)
-{
-    ngx_str_t  *p3p = data;
-
-    if (ngx_strcmp(p3p->data, "none") == 0) {
-        p3p->len = 0;
-        p3p->data = (u_char *) "";
-    }
-
-    return NGX_CONF_OK;
-}
 
 static char *
 ngx_http_testcookie_fallback_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
