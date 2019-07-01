@@ -1,4 +1,6 @@
 ngx_addon_name=ngx_http_testcookie_access_module
+ngx_waf_incs="/usr/local/include/hiredis"
+ngx_waf_libs="-lhiredis"
 
 # b/c it's a DDoS prevention module - we set module_type=HTTP_AUX_FILTER to run it ASAP
 # if you need some more logic, place the module near the other access phase modules
@@ -8,6 +10,8 @@ if test -n "$ngx_module_link"; then
     ngx_module_name=ngx_http_testcookie_access_module
     ngx_module_srcs="$ngx_addon_dir/src/ngx_http_testcookie_access_module.c"
     #ngx_module_order="$ngx_module_name ngx_http_access_module"
+         ngx_module_libs="$ngx_waf_libs"
+    ngx_module_incs="$ngx_waf_incs"
 
     . auto/module
 else
@@ -16,4 +20,6 @@ else
     NGX_ADDON_DEPS="$NGX_ADDON_DEPS"
     #CFLAGS="$CFLAGS"
     USE_OPENSSL=YES
+         ngx_module_libs="$ngx_waf_libs"
+    ngx_module_incs="$ngx_waf_incs"
 fi
