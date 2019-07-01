@@ -44,6 +44,7 @@ typedef struct {
     ngx_str_t                   path;
     ngx_str_t                   p3p;
     ngx_str_t                   redisip;
+    ngx_uint_t                  forbid_log_level;
 
     time_t                      expires;
 
@@ -102,6 +103,10 @@ static ngx_conf_enum_t  ngx_http_testcookie_access_state[] = {
     { ngx_string("var"), NGX_HTTP_TESTCOOKIE_VAR },
     { ngx_null_string, 0 }
 };
+static ngx_conf_enum_t ngx_http_forbid_log_levels[] = { { ngx_string("info"),
+NGX_LOG_INFO }, { ngx_string("notice"), NGX_LOG_NOTICE }, { ngx_string(
+		"warn"), NGX_LOG_WARN }, { ngx_string("error"), NGX_LOG_ERR }, {
+ngx_null_string, 0 } };
 
 static ngx_int_t ngx_http_send_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  *conf);
 static ngx_int_t ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  *conf);
@@ -153,6 +158,7 @@ static ngx_conf_post_handler_pt  ngx_http_testcookie_path_p = ngx_http_testcooki
 static ngx_conf_post_handler_pt  ngx_http_testcookie_p3p_p = ngx_http_testcookie_p3p;
 static ngx_conf_post_handler_pt  ngx_http_testcookie_secret_p = ngx_http_testcookie_secret;
 
+
 static ngx_command_t  ngx_http_testcookie_access_commands[] = {
     {ngx_string("testcookie"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF
@@ -184,7 +190,7 @@ static ngx_command_t  ngx_http_testcookie_access_commands[] = {
       NULL },
 
     { ngx_string("testcookie_redis"),
-      NNGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF
         |NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_enum_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
@@ -205,6 +211,12 @@ static ngx_command_t  ngx_http_testcookie_access_commands[] = {
       offsetof(ngx_http_testcookie_conf_t, domain),
       &ngx_http_testcookie_domain_p },
 
+    { ngx_string("testcookie_forbid_log_level"), 
+        NGX_HTTP_MAIN_CONF | NGX_HTTP_SRV_CONF | NGX_HTTP_LOC_CONF | NGX_CONF_TAKE1,
+		ngx_conf_set_enum_slot, NGX_HTTP_LOC_CONF_OFFSET, 
+        offsetof(ngx_http_testcookie_conf_t, forbid_log_level),
+		&ngx_http_forbid_log_levels },
+    
     { ngx_string("testcookie_path"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -685,6 +697,9 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                 "user passed test");
         return NGX_DECLINED;
+    } else {
+			ngx_log_error(conf->forbid_log_level, r->connection->log, 0,
+					"requests didn't passed testcookie module"); 
     }
 
     args = &r->args;
@@ -1690,6 +1705,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
     conf->enable_redis = NGX_CONF_UNSET;
     conf->expires = NGX_CONF_UNSET;
     conf->max_attempts = NGX_CONF_UNSET;
+    conf->forbid_log_level = NGX_CONF_UNSET;
     conf->whitelist = NULL;
 #if (NGX_HAVE_INET6)
     conf->whitelist6 = NULL;
@@ -1739,6 +1755,8 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_str_value(conf->fallback, prev->fallback, "");
     ngx_conf_merge_str_value(conf->refresh_template, prev->refresh_template, "");
     ngx_conf_merge_uint_value(conf->refresh_status, prev->refresh_status, NGX_HTTP_OK);
+    ngx_conf_merge_uint_value(conf->forbid_log_level, prev->forbid_log_level,	NGX_LOG_ERR);
+
 
     ngx_conf_merge_value(conf->max_attempts, prev->max_attempts, RFC1945_ATTEMPTS);
     ngx_conf_merge_sec_value(conf->expires, prev->expires, 0);
