@@ -699,7 +699,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     } else {
 			ngx_log_error(conf->forbid_log_level, r->connection->log, 0,
-					"requests didn't passed testcookie module"); 
+					"requests didn't pass testcookie module"); 
     }
 
     args = &r->args;
