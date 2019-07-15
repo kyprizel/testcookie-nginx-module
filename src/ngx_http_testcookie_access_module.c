@@ -624,7 +624,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
 				if (c) {
                     ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
 					"smt wrong Redis: %s\n", c->errstr);
-					return NGX_OK;
+					return NGX_DECLINED;
 				} else {
 					ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
 							"redis connection error: can't allocate redis context\n");
@@ -637,7 +637,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
 		reply = redisCommand(c, "GET %s", Host);
 		if (reply->str == NULL) {
 			freeReplyObject(reply);
-			return NGX_OK;
+			return NGX_DECLINED;
 		}
 
         ngx_log_error(NGX_LOG_INFO, r->connection->log, 0,
