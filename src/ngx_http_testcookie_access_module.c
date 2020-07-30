@@ -1871,7 +1871,7 @@ ngx_http_testcookie_samesite(ngx_conf_t *cf, void *post, void *data)
     }
 
     p = ngx_cpymem(new, "; SameSite=", sizeof("; SameSite=") - 1);
-    ngx_memcpy(p, path->data, samesite->len);
+    ngx_memcpy(p, samesite->data, samesite->len);
 
     samesite->len += sizeof("; SameSite=") - 1;
     samesite->data = new;
