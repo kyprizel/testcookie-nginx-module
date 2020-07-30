@@ -1446,9 +1446,10 @@ ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ct
     if (conf->secure_flag != NULL
         && ngx_http_complex_value(r, conf->secure_flag, &secure_flag) == NGX_OK
         && secure_flag.len
-        && (secure_flag.len != 3 || secure_flag.data[2] != 'f' || secure_flag.data[1] != 'f' || secure_flag.data[0] != 'o'))
+        && (secure_flag.len != 2 || secure_flag.data[1] != 'n' || secure_flag.data[0] != 'o'))
     {
-        secure_flag_set = TESTCOOKIE_SECURE_FLAG_ON;
+        secure_flag_set = TESTCOOKIE_SECURE_FLAG_OFF;
+    } else {
         len += sizeof("; Secure") - 1;
     }
 

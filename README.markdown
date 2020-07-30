@@ -319,7 +319,7 @@ testcookie_secure_flag
 **context:** *http, server, location*
 
 Enable Secure flag for cookie.
-Any variable value except "off" interpreted as True.
+Any variable value except "on" interpreted as False.
 
 testcookie_port_in_redirect
 ---------------------------
