@@ -71,6 +71,18 @@ testcookie_path
 
 Sets cookie path, useful if you plan to use different keys for locations.
 
+testcookie_samesite
+---------------
+**syntax:** *testcookie_samesite &lt;string&gt;*
+
+**default:** *None*
+
+**context:** *http, server, location*
+
+Sets cookie attribute, allows you to declare if your cookie should be restricted to a first-party or same-site context.
+Default is None (Cookies will be sent in all contexts, i.e sending cross-origin is allowed.)
+Accepts values: Lax, Strict, None.
+
 testcookie_secret
 -----------------
 **syntax:** *testcookie_secret &lt;string&gt;*

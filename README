@@ -29,6 +29,11 @@ DIRECTIVES
     testcookie_path
         cookie path, useful if you plan to use different keys for locations. default is /
 
+    testcookie_samesite
+        cookie samesite attribute, allows you to declare if your cookie should be restricted 
+        to a first-party or same-site context. Default is None (Cookies will be sent in all contexts,
+        i.e sending cross-origin is allowed.) Accepts three values: Lax, Strict, None.
+
     testcookie_secret
         secret string, used in challenge cookie computation, should be 32 bytes or more,
         better to be long but static to prevent cookie reset for legitimate users every server restart.

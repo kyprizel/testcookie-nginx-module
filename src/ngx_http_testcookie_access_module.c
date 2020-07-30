@@ -37,6 +37,7 @@ typedef struct {
     ngx_str_t                   domain;
     ngx_str_t                   path;
     ngx_str_t                   p3p;
+    ngx_str_t                   samesite;
 
     time_t                      expires;
 
@@ -116,6 +117,7 @@ static char *ngx_http_testcookie_domain(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_testcookie_path(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_testcookie_expires(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_testcookie_p3p(ngx_conf_t *cf, void *post, void *data);
+static char *ngx_http_testcookie_samesite(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_testcookie_max_attempts(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_testcookie_whitelist_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -145,6 +147,7 @@ static u_char ngx_http_msie_refresh_tail[] =
 static ngx_conf_post_handler_pt  ngx_http_testcookie_domain_p = ngx_http_testcookie_domain;
 static ngx_conf_post_handler_pt  ngx_http_testcookie_path_p = ngx_http_testcookie_path;
 static ngx_conf_post_handler_pt  ngx_http_testcookie_p3p_p = ngx_http_testcookie_p3p;
+static ngx_conf_post_handler_pt  ngx_http_testcookie_samesite_p = ngx_http_testcookie_samesite;
 static ngx_conf_post_handler_pt  ngx_http_testcookie_secret_p = ngx_http_testcookie_secret;
 
 static ngx_command_t  ngx_http_testcookie_access_commands[] = {
@@ -190,6 +193,13 @@ static ngx_command_t  ngx_http_testcookie_access_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_testcookie_conf_t, p3p),
       &ngx_http_testcookie_p3p_p },
+
+    { ngx_string("testcookie_samesite"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, samesite),
+      &ngx_http_testcookie_samesite_p },
 
     { ngx_string("testcookie_arg"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
@@ -1417,6 +1427,10 @@ ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ct
         len += conf->path.len;
     }
 
+    if (conf->samesite.len) {
+        len += conf->samesite.len;
+    }
+
     if (conf->expires) {
         len += sizeof(expires) - 1;
     }
@@ -1454,6 +1468,7 @@ ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ct
     }
 
     p = ngx_copy(p, conf->path.data, conf->path.len);
+    p = ngx_copy(p, conf->samesite.data, conf->samesite.len);
     p = ngx_copy(p, conf->domain.data, conf->domain.len);
 
     if (conf->httponly_flag) {
@@ -1574,6 +1589,8 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
      *     conf->domain.data = NULL;
      *     conf->path.len = 0;
      *     conf->path.data = NULL;
+     *     conf->samesite.len = 0;
+     *     conf->samesite.data = NULL;
      *     conf->p3p.len = 0;
      *     conf->p3p.data = NULL;
      *     conf->arg.len = 0;
@@ -1637,6 +1654,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_str_value(conf->domain, prev->domain, "");
     ngx_conf_merge_str_value(conf->path, prev->path, "; path=/");
     ngx_conf_merge_str_value(conf->p3p, prev->p3p, "");
+    ngx_conf_merge_str_value(conf->samesite, prev->samesite, "; SameSite=None");
     ngx_conf_merge_str_value(conf->arg, prev->arg, "");
     ngx_conf_merge_str_value(conf->secret, prev->secret, "");
 
@@ -1838,6 +1856,29 @@ ngx_http_testcookie_p3p(ngx_conf_t *cf, void *post, void *data)
 
     return NGX_CONF_OK;
 }
+
+
+static char *
+ngx_http_testcookie_samesite(ngx_conf_t *cf, void *post, void *data)
+{
+    ngx_str_t  *samesite = data;
+
+    u_char  *p, *new;
+
+    new = ngx_palloc(cf->pool, sizeof("; SameSite=") - 1 + samesite->len);
+    if (new == NULL) {
+        return NGX_CONF_ERROR;
+    }
+
+    p = ngx_cpymem(new, "; SameSite=", sizeof("; SameSite=") - 1);
+    ngx_memcpy(p, path->data, samesite->len);
+
+    samesite->len += sizeof("; SameSite=") - 1;
+    samesite->data = new;
+
+    return NGX_CONF_OK;
+}
+
 
 static char *
 ngx_http_testcookie_fallback_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
