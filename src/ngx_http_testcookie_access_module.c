@@ -1414,7 +1414,7 @@ ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ct
     u_char           *cookie, *p;
     size_t            len;
     ngx_table_elt_t  *set_cookie, *p3p;
-    ngx_uint_t        secure_flag_set = TESTCOOKIE_SECURE_FLAG_OFF;
+    ngx_uint_t        secure_flag_set = TESTCOOKIE_SECURE_FLAG_ON;
     ngx_str_t         secure_flag;
 
     if (conf->redirect_via_refresh && conf->refresh_template.len > 0) {

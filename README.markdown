@@ -314,7 +314,7 @@ testcookie_secure_flag
 ------------------------
 **syntax:** *testcookie_secure_flag (on|off|$variable);*
 
-**default:** *off*
+**default:** *on*
 
 **context:** *http, server, location*
 

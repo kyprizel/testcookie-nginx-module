@@ -135,7 +135,7 @@ DIRECTIVES
 
     testcookie_secure_flag
         adds Secure flag for cookie (on|off|$variable)
-        default is off.
+        default is on.
         any variable value except "off" interpreted as True.
 
     testcookie_port_in_redirect
