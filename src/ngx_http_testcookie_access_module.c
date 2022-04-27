@@ -845,6 +845,8 @@ redirect:
         } else {
             return ngx_http_send_custom_refresh(r, conf);
         }
+    } else {
+        ngx_http_testcookie_nocache(r);
     }
 
     return rc;
