@@ -26,7 +26,7 @@
 #define NGX_HTTP_TESTCOOKIE_MAX_EXPIRES  2145916555
 #define DEFAULT_COOKIE_NAME "TCK"
 #ifndef MD5_DIGEST_LENGTH
-    #define MD5_DIGEST_LENGTH 16
+#define MD5_DIGEST_LENGTH 16
 #endif
 #define RFC1945_ATTEMPTS    4
 
@@ -91,10 +91,10 @@ typedef struct {
 } ngx_http_testcookie_ctx_t;
 
 static ngx_conf_enum_t  ngx_http_testcookie_access_state[] = {
-    { ngx_string("off"), NGX_HTTP_TESTCOOKIE_OFF },
-    { ngx_string("on"), NGX_HTTP_TESTCOOKIE_ON },
-    { ngx_string("var"), NGX_HTTP_TESTCOOKIE_VAR },
-    { ngx_null_string, 0 }
+        { ngx_string("off"), NGX_HTTP_TESTCOOKIE_OFF },
+        { ngx_string("on"), NGX_HTTP_TESTCOOKIE_ON },
+        { ngx_string("var"), NGX_HTTP_TESTCOOKIE_VAR },
+        { ngx_null_string, 0 }
 };
 
 
@@ -103,11 +103,11 @@ static ngx_int_t ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_te
 static ngx_int_t ngx_http_testcookie_handler(ngx_http_request_t *r);
 
 static ngx_http_testcookie_ctx_t *ngx_http_testcookie_get_uid(ngx_http_request_t *r,
-    ngx_http_testcookie_conf_t *conf);
+                                                              ngx_http_testcookie_conf_t *conf);
 static ngx_int_t ngx_http_testcookie_set_uid(ngx_http_request_t *r,
-    ngx_http_testcookie_ctx_t *ctx, ngx_http_testcookie_conf_t *conf);
+                                             ngx_http_testcookie_ctx_t *ctx, ngx_http_testcookie_conf_t *conf);
 static ngx_int_t ngx_http_testcookie_timestamp_variable(ngx_http_request_t *r,
-     ngx_http_variable_value_t *v, uintptr_t data);
+                                                        ngx_http_variable_value_t *v, uintptr_t data);
 
 static ngx_int_t ngx_http_testcookie_add_variables(ngx_conf_t *cf);
 static ngx_int_t ngx_http_testcookie_init(ngx_conf_t *cf);
@@ -138,10 +138,10 @@ static char *ngx_http_testcookie_set_encryption_iv(ngx_conf_t *cf, ngx_command_t
 static u_char expires[] = "; expires=Thu, 31-Dec-37 23:55:55 GMT";
 
 static u_char ngx_http_msie_refresh_head[] =
-"<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=";
+        "<html><head><meta http-equiv=\"Refresh\" content=\"0; URL=";
 
 static u_char ngx_http_msie_refresh_tail[] =
-"\"></head><body></body></html>" CRLF;
+        "\"></head><body></body></html>" CRLF;
 
 
 static ngx_conf_post_handler_pt  ngx_http_testcookie_domain_p = ngx_http_testcookie_domain;
@@ -152,231 +152,231 @@ static ngx_conf_post_handler_pt  ngx_http_testcookie_secret_p = ngx_http_testcoo
 
 static ngx_command_t  ngx_http_testcookie_access_commands[] = {
 
-    { ngx_string("testcookie"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF
-        |NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_enum_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, enable),
-      ngx_http_testcookie_access_state },
-    { ngx_string("testcookie_name"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, name),
-      NULL },
+        { ngx_string("testcookie"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_SIF_CONF
+          |NGX_HTTP_LOC_CONF|NGX_HTTP_LIF_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_enum_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, enable),
+          ngx_http_testcookie_access_state },
+        { ngx_string("testcookie_name"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_str_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, name),
+          NULL },
 
-    { ngx_string("testcookie_domain"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, domain),
-      &ngx_http_testcookie_domain_p },
+        { ngx_string("testcookie_domain"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_str_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, domain),
+          &ngx_http_testcookie_domain_p },
 
-    { ngx_string("testcookie_path"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, path),
-      &ngx_http_testcookie_path_p },
+        { ngx_string("testcookie_path"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_str_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, path),
+          &ngx_http_testcookie_path_p },
 
-    { ngx_string("testcookie_expires"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_testcookie_expires,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      0,
-      NULL },
+        { ngx_string("testcookie_expires"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_testcookie_expires,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          0,
+          NULL },
 
-    { ngx_string("testcookie_p3p"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, p3p),
-      &ngx_http_testcookie_p3p_p },
+        { ngx_string("testcookie_p3p"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_str_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, p3p),
+          &ngx_http_testcookie_p3p_p },
 
-    { ngx_string("testcookie_samesite"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, samesite),
-      &ngx_http_testcookie_samesite_p },
+        { ngx_string("testcookie_samesite"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_str_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, samesite),
+          &ngx_http_testcookie_samesite_p },
 
-    { ngx_string("testcookie_arg"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, arg),
-      NULL },
+        { ngx_string("testcookie_arg"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_str_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, arg),
+          NULL },
 
-    { ngx_string("testcookie_session"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_testcookie_session_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      0,
-      NULL },
+        { ngx_string("testcookie_session"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_testcookie_session_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          0,
+          NULL },
 
-    { ngx_string("testcookie_secret"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, secret),
-      &ngx_http_testcookie_secret_p },
+        { ngx_string("testcookie_secret"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_str_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, secret),
+          &ngx_http_testcookie_secret_p },
 
-    { ngx_string("testcookie_fallback"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_testcookie_fallback_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, fallback),
-      NULL },
+        { ngx_string("testcookie_fallback"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_testcookie_fallback_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, fallback),
+          NULL },
 
-    { ngx_string("testcookie_max_attempts"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_testcookie_max_attempts,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      0,
-      NULL },
+        { ngx_string("testcookie_max_attempts"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_testcookie_max_attempts,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          0,
+          NULL },
 
-    { ngx_string("testcookie_whitelist"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
-      ngx_http_testcookie_whitelist_block,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, whitelist),
-      NULL },
+        { ngx_string("testcookie_whitelist"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
+          ngx_http_testcookie_whitelist_block,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, whitelist),
+          NULL },
 
-    { ngx_string("testcookie_https_location"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, redirect_to_https),
-      NULL },
+        { ngx_string("testcookie_https_location"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_flag_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, redirect_to_https),
+          NULL },
 
-    { ngx_string("testcookie_get_only"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, get_only),
-      NULL },
+        { ngx_string("testcookie_get_only"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_flag_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, get_only),
+          NULL },
 
-    { ngx_string("testcookie_redirect_via_refresh"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, redirect_via_refresh),
-      NULL },
+        { ngx_string("testcookie_redirect_via_refresh"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_flag_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, redirect_via_refresh),
+          NULL },
 
-    { ngx_string("testcookie_refresh_template"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_testcookie_refresh_template_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      0,
-      NULL },
+        { ngx_string("testcookie_refresh_template"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_testcookie_refresh_template_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          0,
+          NULL },
 
-    { ngx_string("testcookie_refresh_status"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_testcookie_refresh_status,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      0,
-      NULL },
+        { ngx_string("testcookie_refresh_status"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_testcookie_refresh_status,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          0,
+          NULL },
 
-    { ngx_string("testcookie_deny_keepalive"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, deny_keepalive),
-      NULL },
+        { ngx_string("testcookie_deny_keepalive"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_flag_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, deny_keepalive),
+          NULL },
 
-    { ngx_string("testcookie_internal"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, internal),
-      NULL },
+        { ngx_string("testcookie_internal"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_flag_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, internal),
+          NULL },
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
 
-    { ngx_string("testcookie_refresh_encrypt_cookie"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, refresh_encrypt_cookie),
-      NULL },
+        { ngx_string("testcookie_refresh_encrypt_cookie"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_flag_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, refresh_encrypt_cookie),
+          NULL },
 
-    { ngx_string("testcookie_refresh_encrypt_cookie_key"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_testcookie_set_encryption_key,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      0,
-      NULL },
+        { ngx_string("testcookie_refresh_encrypt_cookie_key"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_testcookie_set_encryption_key,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          0,
+          NULL },
 
-    { ngx_string("testcookie_refresh_encrypt_cookie_iv"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_testcookie_set_encryption_iv,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      0,
-      NULL },
+        { ngx_string("testcookie_refresh_encrypt_cookie_iv"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_testcookie_set_encryption_iv,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          0,
+          NULL },
 
 #endif
 
-    { ngx_string("testcookie_httponly_flag"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, httponly_flag),
-      NULL },
+        { ngx_string("testcookie_httponly_flag"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_flag_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, httponly_flag),
+          NULL },
 
-    { ngx_string("testcookie_secure_flag"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_set_complex_value_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, secure_flag),
-      NULL },
+        { ngx_string("testcookie_secure_flag"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_set_complex_value_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, secure_flag),
+          NULL },
 
-    { ngx_string("testcookie_pass"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_http_set_complex_value_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, pass_var),
-      NULL },
+        { ngx_string("testcookie_pass"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_http_set_complex_value_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, pass_var),
+          NULL },
 
-    { ngx_string("testcookie_port_in_redirect"),
-      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_flag_slot,
-      NGX_HTTP_LOC_CONF_OFFSET,
-      offsetof(ngx_http_testcookie_conf_t, port_in_redirect),
-      NULL },
+        { ngx_string("testcookie_port_in_redirect"),
+          NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+          ngx_conf_set_flag_slot,
+          NGX_HTTP_LOC_CONF_OFFSET,
+          offsetof(ngx_http_testcookie_conf_t, port_in_redirect),
+          NULL },
 
-      ngx_null_command
+        ngx_null_command
 };
 
 
 static ngx_http_module_t  ngx_http_testcookie_access_module_ctx = {
-    ngx_http_testcookie_add_variables,         /* preconfiguration */
-    ngx_http_testcookie_init,                  /* postconfiguration */
+        ngx_http_testcookie_add_variables,         /* preconfiguration */
+        ngx_http_testcookie_init,                  /* postconfiguration */
 
-    NULL,                                  /* create main configuration */
-    NULL,                                  /* init main configuration */
+        NULL,                                  /* create main configuration */
+        NULL,                                  /* init main configuration */
 
-    NULL,                                  /* create server configuration */
-    NULL,                                  /* merge server configuration */
+        NULL,                                  /* create server configuration */
+        NULL,                                  /* merge server configuration */
 
-    ngx_http_testcookie_create_conf,           /* create location configration */
-    ngx_http_testcookie_merge_conf             /* merge location configration */
+        ngx_http_testcookie_create_conf,           /* create location configration */
+        ngx_http_testcookie_merge_conf             /* merge location configration */
 };
 
 
 ngx_module_t  ngx_http_testcookie_access_module = {
-    NGX_MODULE_V1,
-    &ngx_http_testcookie_access_module_ctx,    /* module context */
-    ngx_http_testcookie_access_commands,       /* module directives */
-    NGX_HTTP_MODULE,                       /* module type */
-    NULL,                                  /* init master */
-    NULL,                                  /* init module */
-    NULL,                                  /* init process */
-    NULL,                                  /* init thread */
-    NULL,                                  /* exit thread */
-    NULL,                                  /* exit process */
-    NULL,                                  /* exit master */
-    NGX_MODULE_V1_PADDING
+        NGX_MODULE_V1,
+        &ngx_http_testcookie_access_module_ctx,    /* module context */
+        ngx_http_testcookie_access_commands,       /* module directives */
+        NGX_HTTP_MODULE,                       /* module type */
+        NULL,                                  /* init master */
+        NULL,                                  /* init module */
+        NULL,                                  /* init process */
+        NULL,                                  /* init thread */
+        NULL,                                  /* exit thread */
+        NULL,                                  /* exit process */
+        NULL,                                  /* exit master */
+        NGX_MODULE_V1_PADDING
 };
 
 
@@ -487,7 +487,7 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
 
     if (conf->refresh_template_lengths != NULL && conf->refresh_template_values != NULL) {
         if (ngx_http_script_run(r, &compiled_refresh_template, conf->refresh_template_lengths->elts,
-                                    0, conf->refresh_template_values->elts) == NULL) {
+                                0, conf->refresh_template_values->elts) == NULL) {
             return NGX_ERROR;
         }
     } else {
@@ -526,7 +526,7 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
     }
 
     b->last = ngx_cpymem(b->start, compiled_refresh_template.data,
-                   compiled_refresh_template.len);
+                         compiled_refresh_template.len);
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "compiled refresh template len: \"%d\"", compiled_refresh_template.len);
@@ -601,7 +601,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
 
     if (conf->get_only
         && (r->method != NGX_HTTP_GET
-        && r->method != NGX_HTTP_HEAD)) {
+            && r->method != NGX_HTTP_HEAD)) {
         return NGX_DECLINED;
     }
 
@@ -612,7 +612,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
 
     if (ctx->ok == 1) {
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                "user passed test");
+                       "user passed test");
         return NGX_DECLINED;
     }
 
@@ -627,16 +627,16 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         if (args->len > 0) {
             for (i = 0; i <= args->len; i++) {
                 if ((i == args->len) || (args->data[i] == '&')) {
-                        if (j > 1) {
-                            k = j;
-                            l = i;
-                        }
+                    if (j > 1) {
+                        k = j;
+                        l = i;
+                    }
                     j = 0;
                 } else if ((j == 0) && (i < args->len-look->len)) {
                     if ((ngx_strncmp(args->data+i, look->data, look->len) == 0)
                         && (args->data[i+look->len] == '=')) {
-                            j = i+look->len+1;
-                            i = j-1;
+                        j = i+look->len+1;
+                        i = j-1;
                     } else {
                         j = 1;
                     }
@@ -682,15 +682,15 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         }
         switch (r->connection->local_sockaddr->sa_family) {
 #if (NGX_HAVE_INET6)
-        case AF_INET6:
+            case AF_INET6:
             sin6 = (struct sockaddr_in6 *) r->connection->local_sockaddr;
             port = ntohs(sin6->sin6_port);
             break;
 #endif
-        default: /* AF_INET */
-            sin = (struct sockaddr_in *) r->connection->local_sockaddr;
-            port = ntohs(sin->sin_port);
-            break;
+            default: /* AF_INET */
+                sin = (struct sockaddr_in *) r->connection->local_sockaddr;
+                port = ntohs(sin->sin_port);
+                break;
         }
         if (port > 0 && port < 65535 && conf->port_in_redirect) {
             len += sizeof(":65535") - 1;
@@ -777,23 +777,23 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
     if (look->len > 0) {
         (*p++) = '?';
         switch (sc) {
-        case 1:
-            p = ngx_sprintf(p, "%V=1", look);
-            break;
-        case 2:
-            p = ngx_sprintf(p, "%V1", args);
-            break;
-        case 3:
-            p = ngx_sprintf(p, "%V&%V=1", args, look);
-            break;
-        case 4:
-            attempt++;
-            p = ngx_copy(p, args->data, k);
-            p = ngx_sprintf(p, "%d", attempt);
-            p = ngx_copy(p, args->data+l, args->len-l);
-            break;
-        default:
-            break;
+            case 1:
+                p = ngx_sprintf(p, "%V=1", look);
+                break;
+            case 2:
+                p = ngx_sprintf(p, "%V1", args);
+                break;
+            case 3:
+                p = ngx_sprintf(p, "%V&%V=1", args, look);
+                break;
+            case 4:
+                attempt++;
+                p = ngx_copy(p, args->data, k);
+                p = ngx_sprintf(p, "%d", attempt);
+                p = ngx_copy(p, args->data+l, args->len-l);
+                break;
+            default:
+                break;
         }
     } else {
         if (args->len > 0) {
@@ -807,7 +807,7 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
         return rc;
     }
 
-redirect:
+    redirect:
 
 /*
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "buf len: %d", len);
@@ -854,7 +854,7 @@ redirect:
 
 static ngx_int_t
 ngx_http_testcookie_got_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+                                 ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_testcookie_ctx_t   *ctx;
     ngx_http_testcookie_conf_t  *conf;
@@ -900,7 +900,7 @@ ngx_http_testcookie_got_variable(ngx_http_request_t *r,
 #ifdef REFRESH_COOKIE_ENCRYPTION
 static ngx_int_t
 ngx_http_testcookie_enc_key_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+                                     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_testcookie_ctx_t   *ctx;
     ngx_http_testcookie_conf_t  *conf;
@@ -941,7 +941,7 @@ ngx_http_testcookie_enc_key_variable(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_testcookie_enc_set_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+                                     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_testcookie_ctx_t   *ctx;
     ngx_http_testcookie_conf_t  *conf;
@@ -1040,7 +1040,7 @@ ngx_http_testcookie_enc_set_variable(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_testcookie_enc_iv_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+                                    ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_testcookie_ctx_t   *ctx;
     ngx_http_testcookie_conf_t  *conf;
@@ -1082,7 +1082,7 @@ ngx_http_testcookie_enc_iv_variable(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_testcookie_timestamp_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+                                       ngx_http_variable_value_t *v, uintptr_t data)
 {
     u_char  *p;
 
@@ -1103,7 +1103,7 @@ ngx_http_testcookie_timestamp_variable(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_testcookie_set_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+                                 ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_testcookie_ctx_t   *ctx;
     ngx_http_testcookie_conf_t  *conf;
@@ -1142,7 +1142,7 @@ ngx_http_testcookie_set_variable(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_testcookie_ok_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+                                ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_testcookie_ctx_t   *ctx;
     ngx_http_testcookie_conf_t  *conf;
@@ -1186,7 +1186,7 @@ ngx_http_testcookie_ok_variable(ngx_http_request_t *r,
 
 static ngx_int_t
 ngx_http_testcookie_nexturl_variable(ngx_http_request_t *r,
-    ngx_http_variable_value_t *v, uintptr_t data)
+                                     ngx_http_variable_value_t *v, uintptr_t data)
 {
     ngx_http_testcookie_conf_t  *conf;
     u_char       *p, *location;
@@ -1237,9 +1237,10 @@ ngx_http_testcookie_nexturl_variable(ngx_http_request_t *r,
 static ngx_http_testcookie_ctx_t *
 ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *conf)
 {
+#if defined(nginx_version) && nginx_version < 1023000
     ngx_int_t                   n;
-#if (NGX_DEBUG)
-    ngx_table_elt_t             **cookies;
+#else
+    ngx_table_elt_t             *cookie;
 #endif
     ngx_http_testcookie_conf_t  *ucf = conf;
     ngx_http_testcookie_ctx_t   *ctx;
@@ -1296,18 +1297,18 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
 #endif
 
     switch (r->connection->sockaddr->sa_family) {
-    case AF_INET:
+        case AF_INET:
 
-        /* AF_INET only */
-        sin = (struct sockaddr_in *) r->connection->sockaddr;
+            /* AF_INET only */
+            sin = (struct sockaddr_in *) r->connection->sockaddr;
 
-        if (conf->whitelist != NULL) {
-            vv = (ngx_http_variable_value_t *) ngx_radix32tree_find(conf->whitelist, ntohl(sin->sin_addr.s_addr));
-        }
-        break;
+            if (conf->whitelist != NULL) {
+                vv = (ngx_http_variable_value_t *) ngx_radix32tree_find(conf->whitelist, ntohl(sin->sin_addr.s_addr));
+            }
+            break;
 
 #if (NGX_HAVE_INET6)
-    case AF_INET6:
+            case AF_INET6:
         sin6 = (struct sockaddr_in6 *) r->connection->sockaddr;
         p = sin6->sin6_addr.s6_addr;
 
@@ -1365,22 +1366,27 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "input data: \"%V\"", check);
 
-
+#if defined(nginx_version) && nginx_version < 1023000
     n = ngx_http_parse_multi_header_lines(&r->headers_in.cookies, &conf->name,
-                                          &ctx->cookie);
-    if (n == NGX_DECLINED) {
+										&ctx->cookie);
+	if (n == NGX_DECLINED) {
+		return ctx;
+	}
+#else
+    cookie = ngx_http_parse_multi_header_lines(r, r->headers_in.cookie, &conf->name,
+                                               &ctx->cookie);
+    if (cookie == NULL) {
         return ctx;
     }
+#endif
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "ctx uid cookie: \"%V\"", &ctx->cookie);
 
-#if (NGX_DEBUG)
-    cookies = r->headers_in.cookies.elts;
-
+#if defined(nginx_version) && nginx_version >= 1023000
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                      "client sent cookies \"%V\"",
-                      &cookies[n]->value);
+					  "client sent cookies \"%V\"",
+					  &cookie->value);
 #endif
 
     if (ctx->cookie.len != MD5_DIGEST_LENGTH*2) {
@@ -1408,7 +1414,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
 
 static ngx_int_t
 ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ctx,
-    ngx_http_testcookie_conf_t *conf)
+                            ngx_http_testcookie_conf_t *conf)
 {
 #define TESTCOOKIE_SECURE_FLAG_ON  1
 #define TESTCOOKIE_SECURE_FLAG_OFF 0
@@ -2017,7 +2023,7 @@ ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data)
         secret->len = MD5_DIGEST_LENGTH;
         if (RAND_bytes(secret->data, MD5_DIGEST_LENGTH) != 1) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "Openssl random secret generation error\n");
+                               "Openssl random secret generation error\n");
             return NGX_CONF_ERROR;
         }
         return NGX_CONF_OK;
@@ -2077,7 +2083,7 @@ ngx_http_testcookie_set_encryption_key(ngx_conf_t *cf, ngx_command_t *cmd, void 
     if (ngx_strcmp(value[1].data, "random") == 0) {
         if (RAND_bytes(ucf->refresh_encrypt_cookie_key, MD5_DIGEST_LENGTH) != 1) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                   "Openssl random key generation error \"%V\"", &value[0]);
+                               "Openssl random key generation error \"%V\"", &value[0]);
             return NGX_CONF_ERROR;
         }
         return NGX_CONF_OK;
@@ -2085,13 +2091,13 @@ ngx_http_testcookie_set_encryption_key(ngx_conf_t *cf, ngx_command_t *cmd, void 
 
     if (value[1].len != MD5_DIGEST_LENGTH*2) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid parameter len, \"%V\" 16 hex bytes required", &value[0]);
+                           "invalid parameter len, \"%V\" 16 hex bytes required", &value[0]);
         return NGX_CONF_ERROR;
     }
 
     if(ngx_hextobin(ucf->refresh_encrypt_cookie_key, value[1].data, value[1].len) == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid parameter len, \"%V\" 16 hex bytes required", &value[0]);
+                           "invalid parameter len, \"%V\" 16 hex bytes required", &value[0]);
         return NGX_CONF_ERROR;
     }
 
@@ -2115,14 +2121,14 @@ ngx_http_testcookie_set_encryption_iv(ngx_conf_t *cf, ngx_command_t *cmd, void *
     ucf->refresh_encrypt_cookie_iv = ngx_palloc(cf->pool, MD5_DIGEST_LENGTH);
     if (ucf->refresh_encrypt_cookie_iv == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                              "IV memory allocation error");
+                           "IV memory allocation error");
         return NGX_CONF_ERROR;
     }
 
     if (ngx_strcmp(value[1].data, "random2") == 0) {
         if (RAND_bytes(ucf->refresh_encrypt_cookie_iv, MD5_DIGEST_LENGTH) != 1) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                                "Openssl random IV generation error");
+                               "Openssl random IV generation error");
             return NGX_CONF_ERROR;
         }
         return NGX_CONF_OK;
@@ -2130,13 +2136,13 @@ ngx_http_testcookie_set_encryption_iv(ngx_conf_t *cf, ngx_command_t *cmd, void *
 
     if (value[1].len != MD5_DIGEST_LENGTH*2) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid parameter len, \"%V\" 16 hex bytes required", &value[0]);
+                           "invalid parameter len, \"%V\" 16 hex bytes required", &value[0]);
         return NGX_CONF_ERROR;
     }
 
     if(ngx_hextobin(ucf->refresh_encrypt_cookie_iv, value[1].data, value[1].len) == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid parameter len, \"%V\" 16 hex bytes required", &value[0]);
+                           "invalid parameter len, \"%V\" 16 hex bytes required", &value[0]);
         return NGX_CONF_ERROR;
     }
 
@@ -2223,7 +2229,7 @@ ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 
     if (rc == NGX_ERROR) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid parameter \"%V\"", &value[0]);
+                           "invalid parameter \"%V\"", &value[0]);
         return NGX_CONF_ERROR;
     }
 
@@ -2236,7 +2242,7 @@ ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
     switch (cidr.family) {
 
 #if (NGX_HAVE_INET6)
-    case AF_INET6:
+        case AF_INET6:
     /* fall through */
 
         for (i = 2; i; i--) {
@@ -2272,37 +2278,37 @@ ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 
 #endif
 
-    /* fall through */
-    default: /* AF_INET */
+        /* fall through */
+        default: /* AF_INET */
 
-        cidr.u.in.addr = ntohl(cidr.u.in.addr);
-        cidr.u.in.mask = ntohl(cidr.u.in.mask);
+            cidr.u.in.addr = ntohl(cidr.u.in.addr);
+            cidr.u.in.mask = ntohl(cidr.u.in.mask);
 
-        for (i = 2; i; i--) {
-            rc = ngx_radix32tree_insert(ucf->whitelist, cidr.u.in.addr, cidr.u.in.mask,
-                                        (uintptr_t) &ngx_http_variable_true_value);
-            if (rc == NGX_OK) {
-                return NGX_CONF_OK;
-            }
+            for (i = 2; i; i--) {
+                rc = ngx_radix32tree_insert(ucf->whitelist, cidr.u.in.addr, cidr.u.in.mask,
+                                            (uintptr_t) &ngx_http_variable_true_value);
+                if (rc == NGX_OK) {
+                    return NGX_CONF_OK;
+                }
 
-            if (rc == NGX_ERROR) {
-                return NGX_CONF_ERROR;
-            }
+                if (rc == NGX_ERROR) {
+                    return NGX_CONF_ERROR;
+                }
 
-            /* rc == NGX_BUSY */
-            old  = (ngx_http_variable_value_t *)
+                /* rc == NGX_BUSY */
+                old  = (ngx_http_variable_value_t *)
                         ngx_radix32tree_find(ucf->whitelist, cidr.u.in.addr & cidr.u.in.mask);
 
-            ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
-                    "duplicate \"%V\", old value: \"%v\"", &value[0], old);
+                ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
+                                   "duplicate \"%V\", old value: \"%v\"", &value[0], old);
 
-            rc = ngx_radix32tree_delete(ucf->whitelist, cidr.u.in.addr, cidr.u.in.mask);
+                rc = ngx_radix32tree_delete(ucf->whitelist, cidr.u.in.addr, cidr.u.in.mask);
 
-            if (rc == NGX_ERROR) {
-                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid radix tree");
-                return NGX_CONF_ERROR;
+                if (rc == NGX_ERROR) {
+                    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid radix tree");
+                    return NGX_CONF_ERROR;
+                }
             }
-        }
     }
 
     return NGX_CONF_ERROR;
@@ -2340,8 +2346,11 @@ ngx_hextobin(u_char *dst, u_char *src, size_t len)
 static ngx_int_t
 ngx_http_testcookie_nocache(ngx_http_request_t *r)
 {
+    ngx_table_elt_t     *e, *cc;
+#if defined(nginx_version) && nginx_version < 1023000
     ngx_uint_t           i;
-    ngx_table_elt_t     *e, *cc, **ccp;
+	ngx_table_elt_t     **ccp;
+#endif
 
     e = r->headers_out.expires;
     if (e == NULL) {
@@ -2360,9 +2369,9 @@ ngx_http_testcookie_nocache(ngx_http_request_t *r)
     e->value.len = sizeof("Mon, 28 Sep 1970 06:00:00 GMT") - 1;
     e->value.data = (u_char *) "Thu, 01 Jan 1970 00:00:01 GMT";
 
+#if defined(nginx_version) && nginx_version < 1023000
     ccp = r->headers_out.cache_control.elts;
     if (ccp == NULL) {
-
         if (ngx_array_init(&r->headers_out.cache_control, r->pool,
                            1, sizeof(ngx_table_elt_t *))
             != NGX_OK)
@@ -2391,6 +2400,28 @@ ngx_http_testcookie_nocache(ngx_http_request_t *r)
 
         cc = ccp[0];
     }
+#else
+    cc = r->headers_out.cache_control;
+    if (cc == NULL) {
+        cc = ngx_list_push(&r->headers_out.headers);
+        if (cc == NULL) {
+            return NGX_ERROR;
+        }
+
+        r->headers_out.cache_control = cc;
+        cc->next = NULL;
+
+        cc->hash = 1;
+        ngx_str_set(&cc->key, "Cache-Control");
+    } else {
+        for (cc = cc->next; cc; cc = cc->next) {
+            cc->hash = 0;
+        }
+
+        cc = r->headers_out.cache_control;
+        cc->next = NULL;
+    }
+#endif
 
     ngx_str_set(&cc->value, "no-cache");
 
