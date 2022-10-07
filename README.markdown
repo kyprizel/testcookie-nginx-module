@@ -429,6 +429,12 @@ Example configuration
             location = /w3c/p3p.xml {
                 root /var/www/public_html;
             }
+            
+            # required for passing Let's Encrypt ACME challenge, remove if not required
+            location = /.well-known/acme-challenge/ {
+                root /var/www/public_html;
+            }
+
 
             location / {
                 #enable module for specific location
