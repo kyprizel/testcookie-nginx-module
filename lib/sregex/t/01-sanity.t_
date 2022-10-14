@@ -1,0 +1,1581 @@
+# vim:set ft= ts=4 sw=4 et fdm=marker:
+
+use t::SRegex 'no_plan';
+
+run_tests();
+
+__DATA__
+
+=== TEST 1:
+--- re: a|ab
+--- s: bah
+
+
+
+=== TEST 2:
+--- re: a|(ab)
+--- s: bah
+
+
+
+=== TEST 3:
+--- re: a|(ab)
+--- s: a
+
+
+
+=== TEST 4:
+--- re: a|(ab)
+--- s: b
+
+
+
+=== TEST 5:
+--- re: ab
+--- s: abc
+
+
+
+=== TEST 6:
+--- re: a+
+--- s: bhaaaca
+
+
+
+=== TEST 7:
+--- re: a*
+--- s: bhc
+
+
+
+=== TEST 8:
+--- re: a*
+--- s: bhac
+
+
+
+=== TEST 9:
+--- re: a?
+--- s: bhc
+
+
+
+=== TEST 10:
+--- re: a?
+--- s: bhac
+
+
+
+=== TEST 11: .+
+--- re: .+
+--- s:
+
+
+
+=== TEST 12:
+--- re: b.+?a
+--- s: bhaaaca
+
+
+
+=== TEST 13:
+--- re: bh.+?a
+--- s: bhac
+
+
+
+=== TEST 14:
+--- re: b.*?a
+--- s: bhaaaca
+
+
+
+=== TEST 15:
+--- re: bh.*?a
+--- s: bhac
+
+
+
+=== TEST 16: non-greedy ?
+--- re: a??
+--- s: bhac
+
+
+
+=== TEST 17: looping empty pattern (matching none)
+re1 and re2 are wrong here
+--- re: (a*)*
+--- s: bhaac
+
+
+
+=== TEST 18: looping empty pattern (matching one char)
+perl and pcre are wrong here
+--- re: (a*)*
+--- s: a
+--- cap: (0, 1) (0, 1)
+
+
+
+=== TEST 19: looping empty pattern (matching one char, non-greedy)
+re1 and re2 are wrong here.
+--- re: (a*?)*
+--- s: a
+
+
+
+=== TEST 20: looping empty pattern
+perl and pcre are wrong here.
+--- re: (a?)*
+--- s: a
+--- cap: (0, 1) (0, 1)
+
+
+
+=== TEST 21: looping empty pattern
+re1 and re2 are wrong here.
+--- re: (a??)*
+--- s: a
+
+
+
+=== TEST 22: looping empty pattern
+re1 and re2 are wrong here.
+--- re: (a*?)*
+--- s: a
+
+
+
+=== TEST 23: perl capturing semantics
+--- re: (a|bcdef|g|ab|c|d|e|efg|fg)*
+--- s: abcdefg
+
+
+
+=== TEST 24:
+--- re: (a+)(b+)
+--- s: aabbbb
+
+
+
+=== TEST 25: (?: ... )
+--- re: (?:a+)(?:b+)
+--- s: aabbbb
+
+
+
+=== TEST 26: many captures exceeding $9
+--- re eval: "(.)" x 12
+--- s eval: "a" x 12
+
+
+
+=== TEST 27:
+--- re: (a|)
+--- s: aabbbb
+
+
+
+=== TEST 28:
+--- re: (|a)
+--- s: aabbbb
+
+
+
+=== TEST 29: empty regex
+--- re:
+--- s: aabbbb
+
+
+
+=== TEST 30: empty group
+--- re: ()
+--- s: aabbbb
+
+
+
+=== TEST 31:
+--- re: abab|abbb
+--- s: abbb
+
+
+
+=== TEST 32:
+--- re: (a?)(a?)(a?)aaa
+--- s: aaa
+
+
+
+=== TEST 33: a common pathological regex
+--- re: (.*) (.*) (.*) (.*) (.*)
+--- s: a  c d ee fff
+
+
+
+=== TEST 34: submatch semantics (greedy)
+--- re: (.+)(.+)
+--- s: abcd
+
+
+
+=== TEST 35: submatch semantics (non-greedy)
+--- re: (.+?)(.+?)
+--- s: abcd
+
+
+
+=== TEST 36: character class (single char ranges)
+--- re: [az]+
+--- s: -(aazbc+d
+
+
+
+=== TEST 37: character class (single char ranges)
+--- re: [az]+
+--- s: -(bc+d
+
+
+
+=== TEST 38: character class (two char ranges)
+--- re: [a-z]+
+--- s: -(aazbc+d
+
+
+
+=== TEST 39: character class (two char ranges)
+--- re: [a-z]+
+--- s: -([*y*+
+
+
+
+=== TEST 40: character class (two char ranges)
+--- re: [a-z]+
+--- s: -([*/+
+
+
+
+=== TEST 41: character class (two char ranges)
+--- re: [^a-z]+
+--- s: -(aazbc+d
+
+
+
+=== TEST 42: character class (special char -)
+--- re: [^-a-z]+
+--- s: -aaz-bc+d
+
+
+
+=== TEST 43: character class (special char "()")
+--- re: [^()a-z]+
+--- s: -a(az)-bc+d
+
+
+
+=== TEST 44: character class (special char "()")
+--- re: [()a-]+
+--- s: -a(az)-bc+d
+
+
+
+=== TEST 45: character class (special char "()")
+--- re: [()a-z-A]+
+--- s: -a(az)-bc+d
+
+
+
+=== TEST 46: character class (two ranges)
+--- re: [0-9A-Za-z]+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 47: \d
+--- re: \d+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 48: \w
+--- re: \w+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 49: \W
+--- re: \W+
+--- s: hello_world1234Blah(+-
+
+
+
+=== TEST 50: \D
+--- re: \D+
+--- s: -+(hello)_world1234Blah(+
+
+
+
+=== TEST 51: \s
+--- re: \s+
+--- s eval: "-+(hello) \t_world1234Blah(+"
+
+
+
+=== TEST 52: \S
+--- re: \S+
+--- s eval: "-+(hello) \t_world1234Blah(+"
+
+
+
+=== TEST 53: escaped \ and [
+--- re: \\\[\)\(\.
+--- s: hello\[)(.a
+
+
+
+=== TEST 54: [\d]
+--- re: [\d]+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 55: [B\d]
+--- re: [B\d]+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 56: [\dB]
+--- re: [\dB]+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 57: [^\d]
+--- re: [^\d]+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 58: [^\d]
+--- re: [^\d]+
+--- s: 0159783
+
+
+
+=== TEST 59: [^az\d]
+--- re: [^az\d]+
+--- s: 0159a783z
+
+
+
+=== TEST 60: [^az\d]
+--- re: [^az\d]+
+--- s: 0159a783zd
+
+
+
+=== TEST 61: [az\d]
+--- re: [az\d]+
+--- s: +-*(byd
+
+
+
+=== TEST 62: [az\d]
+--- re: [az\d]+
+--- s: +-*(byd9
+
+
+
+=== TEST 63: [az\d]
+--- re: [az\d]+
+--- s: +-*(bydz
+
+
+
+=== TEST 64: [a-\d]
+--- re: [a-\d]+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 65:
+--- re: [(\w]+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 66:
+--- re: [\w(]+
+--- s: -hello_world1234Blah(+
+
+
+
+=== TEST 67:
+--- re: [\s]+
+--- s eval: "-+(hello) \t_world1234Blah(+"
+
+
+
+=== TEST 68:
+--- re: [\S]+
+--- s eval: "a"
+
+
+
+=== TEST 69:
+--- re: [a-\xfe]+
+--- s eval: "b"
+
+
+
+=== TEST 70:
+--- re: [\S]+
+--- s eval: "-+(hello) \t_world1234Blah(+"
+
+
+
+=== TEST 71: \W
+--- re: [\W]+
+--- s: hello_world1234Blah(+-
+
+
+
+=== TEST 72: \D
+--- re: [\D]+
+--- s: -+(hello)_world1234Blah(+
+
+
+
+=== TEST 73:
+--- re: [^\D]+
+--- s: -+(hello)_world1234Blah(+
+
+
+
+=== TEST 74: escaped metachars
+--- re: [\\\[\)\(\.]+
+--- s: hello\[)(.a
+
+
+
+=== TEST 75: . in []
+--- re: [.]+
+--- s: hello\[)(.a
+
+
+
+=== TEST 76: . in []
+--- re: [\.-9]+
+--- s: -+(hello)_world.1234Blah(+
+
+
+
+=== TEST 77: +-.
+--- re: [\+-\.]+
+--- s: -.,+(hello)_world.1234Blah(+
+
+
+
+=== TEST 78:
+--- re: x{1,}
+--- s: hxxxxxx
+
+
+
+=== TEST 79:
+--- re: x{0,}
+--- s: hxxxxxx
+
+
+
+=== TEST 80:
+--- re: x{0,}
+--- s: hab
+
+
+
+=== TEST 81:
+--- re: x{1,}
+--- s: hab
+
+
+
+=== TEST 82:
+--- re: x{0,1}
+--- s: hab
+
+
+
+=== TEST 83:
+--- re: x{0,1}
+--- s: haxb
+
+
+
+=== TEST 84:
+--- re: x{0, 1}
+--- s: x{0, 1}
+
+
+
+=== TEST 85:
+--- re: x{0,1
+--- s: x{0,1}
+
+
+
+=== TEST 86:
+--- re: x{0 ,1}
+--- s: x{0 ,1}
+
+
+
+=== TEST 87:
+--- re: x{,12}
+--- s: x{,12}
+
+
+
+=== TEST 88:
+--- re: x{1,1}
+--- s: axxxx
+
+
+
+=== TEST 89:
+--- re: x{1,1}?
+--- s: axxxx
+
+
+
+=== TEST 90:
+--- re: x{3,3}
+--- s: axxxx
+
+
+
+=== TEST 91:
+--- re: x{1,3}
+--- s: axxxx
+
+
+
+=== TEST 92:
+--- re: x{2,3}
+--- s: axxxx
+
+
+
+=== TEST 93:
+--- re: x{2,3}?
+--- s: axxxx
+
+
+
+=== TEST 94:
+--- re: x{1,3}?
+--- s: axxxx
+
+
+
+=== TEST 95:
+--- re: x{1,}?
+--- s: axxxx
+
+
+
+=== TEST 96:
+--- re: x{1,}
+--- s: axxxx
+
+
+
+=== TEST 97:
+--- re: x{12,15}
+--- s eval: 'x' x 16
+
+
+
+=== TEST 98:
+--- re: x{12,15}
+--- s eval: 'x' x 16
+
+
+
+=== TEST 99:
+--- re: x{100,}
+--- s eval: 'x' x 16
+--- fatal
+
+
+
+=== TEST 100: from exceeding 100
+--- re: x{0,100}
+--- s eval: 'x' x 16
+--- fatal
+
+
+
+=== TEST 101: to exceeding 100
+--- re: {0,100}
+--- s eval: 'x' x 16
+--- fatal
+
+
+
+=== TEST 102:
+--- re: x{1}
+--- s eval: 'x' x 16
+
+
+
+=== TEST 103:
+--- re: x{1}?
+--- s eval: 'x' x 16
+
+
+
+=== TEST 104:
+--- re: x{2}
+--- s eval: 'x' x 16
+
+
+
+=== TEST 105:
+--- re: x{2}?
+--- s eval: 'x' x 16
+
+
+
+=== TEST 106:
+--- re: x{11}
+--- s eval: 'x' x 16
+
+
+
+=== TEST 107:
+--- re: x{0,0}
+--- s: hab
+
+
+
+=== TEST 108: match a tab
+--- re: \t
+--- s eval: " \t"
+
+
+
+=== TEST 109: match a tab in char class
+--- re: [\t]
+--- s eval: " \t"
+
+
+
+=== TEST 110: match a newline
+--- re: \n
+--- s eval: " \n"
+
+
+
+=== TEST 111: match a newline in char class
+--- re: [\n]
+--- s eval: " \n"
+
+
+
+=== TEST 112: match a return
+--- re: \r
+--- s eval: " \r"
+
+
+
+=== TEST 113: match a return in char class
+--- re: [\r]
+--- s eval: " \r"
+
+
+
+=== TEST 114: match a form feed
+--- re: \f
+--- s eval: " \f"
+
+
+
+=== TEST 115: match a form feed in char class
+--- re: [\f]
+--- s eval: " \f"
+
+
+
+=== TEST 116: match an alarm feed
+--- re: \a
+--- s eval: " \a"
+
+
+
+=== TEST 117: match an alarm in char class
+--- re: [\a]
+--- s eval: " \a"
+
+
+
+=== TEST 118: match an escape feed
+--- re: \e
+--- s eval: " \e"
+
+
+
+=== TEST 119: match an escape in char class
+--- re: [\e]
+--- s eval: " \e"
+
+
+
+=== TEST 120: \A
+--- re: \Ahello
+--- s eval: "hello"
+
+
+
+=== TEST 121: \A
+--- re: \Ahello
+--- s eval: "ahello"
+
+
+
+=== TEST 122: \A
+--- re: \Ahello
+--- s eval: "blah\nhello"
+
+
+
+=== TEST 123: ^
+--- re: ^h
+--- s eval: "h"
+
+
+
+=== TEST 124: ^^
+--- re: ^^hello
+--- s eval: "hello"
+
+
+
+=== TEST 125: ^^
+--- re: ^h^ello
+--- s eval: "hello"
+
+
+
+=== TEST 126: ^^
+--- re: ^\n^ello
+--- s eval: "\nello"
+
+
+
+=== TEST 127: ^
+--- re: ^hello
+--- s eval: "hello"
+
+
+
+=== TEST 128: ^
+--- re: ^hello
+--- s eval: "blah\nhello"
+
+
+
+=== TEST 129: ^ not match
+--- re: ^ello
+--- s eval: "blah\nhello"
+
+
+
+=== TEST 130: ^
+--- re: (a.*(^hello))
+--- s eval: "blah\nhello"
+
+
+
+=== TEST 131: ^
+--- re: ^
+--- s:
+
+
+
+=== TEST 132: ^
+--- re: (^)+
+--- s: "\n\n\n"
+
+
+
+=== TEST 133: \z
+--- re: o\z
+--- s eval: "o"
+
+
+
+=== TEST 134: \z & $
+--- re: $\z\n
+--- s eval: "o\n"
+
+
+
+=== TEST 135: \z & $
+--- re: \z$\n
+--- s eval: "o\n"
+
+
+
+=== TEST 136: \z
+--- re: l\z
+--- s eval: "hello"
+
+
+
+=== TEST 137: \z
+--- re: hello\z
+--- s eval: "blah\nhello"
+
+
+
+=== TEST 138: \z
+--- re: hello\z
+--- s eval: "blah\nhello\n"
+
+
+
+=== TEST 139: $
+--- re: hello$
+--- s eval: "blah\nhello"
+
+
+
+=== TEST 140: $
+--- re: hello$
+--- s eval: "blah\nhello\n"
+
+
+
+=== TEST 141: $
+--- re: hell$
+--- s eval: "blah\nhello\n"
+
+
+
+=== TEST 142: $
+--- re: \w+$
+--- s eval: "blah\nhello"
+
+
+
+=== TEST 143: $
+--- re: .*(\w+)$
+--- s eval: "blah\nhello"
+
+
+
+=== TEST 144: $
+--- re: .*(\w+)$\n
+--- s eval: "blah\nhello"
+
+
+
+=== TEST 145: $
+--- re: ((\w+)$\n?)+
+--- s eval: "a\nb"
+
+
+
+=== TEST 146: $
+--- re: ((\w+)$\n?)+
+--- s eval: "abc\ndef"
+
+
+
+=== TEST 147: \b
+--- re: a\b
+--- s eval: "a\ndef"
+
+
+
+=== TEST 148: \b
+--- re: ab\b
+--- s eval: "ab\ndef"
+
+
+
+=== TEST 149: \b
+--- re: ab\b
+--- s eval: "abdef"
+
+
+
+=== TEST 150: \b
+--- re: a\bb
+--- s eval: "ab"
+
+
+
+=== TEST 151: \b
+--- re: (a\b|a\b)b
+--- s eval: "ab"
+
+
+
+=== TEST 152: \b
+--- re: ([+a])\b([-b])
+--- s eval: "ab"
+
+
+
+=== TEST 153: \b
+--- re: ([+a])\b([-b])
+--- s eval: "a-"
+
+
+
+=== TEST 154: \b
+--- re: ([+a])\b([-b])
+--- s eval: "+-"
+
+
+
+=== TEST 155: \b
+--- re: ([+a])\b([-b])
+--- s eval: "+b"
+
+
+
+=== TEST 156: \b
+--- re: ([+a])\b\b([-b])
+--- s eval: "+b"
+
+
+
+=== TEST 157: \b
+--- re: \bb
+--- s eval: "b"
+
+
+
+=== TEST 158: \b
+--- re: \b([-b])
+--- s eval: "b"
+
+
+
+=== TEST 159: \b
+--- re: \b([-b])
+--- s eval: "-"
+
+
+
+=== TEST 160: \b\z
+--- re: a\b\z
+--- s eval: "a\n"
+
+
+
+=== TEST 161: testinput1:1641
+--- re: .*\b5
+--- s eval: "5"
+
+
+
+=== TEST 162: testinput1:1641
+--- re: .*\b5+$
+--- s eval: "55"
+
+
+
+=== TEST 163: \B
+--- re: ([+a])\B([-b])
+--- s eval: "ab"
+
+
+
+=== TEST 164: \B
+--- re: ([+a])\B([-b])
+--- s eval: "a-"
+
+
+
+=== TEST 165: \B
+--- re: ([+a])\B([-b])
+--- s eval: "+-"
+
+
+
+=== TEST 166: \B
+--- re: ([+a])\B([-b])
+--- s eval: "+b"
+
+
+
+=== TEST 167: \B
+--- re: ([+a])\B\B([-b])
+--- s eval: "+b"
+
+
+
+=== TEST 168: \B
+--- re: \B([-b])
+--- s eval: "b"
+
+
+
+=== TEST 169: \B
+--- re: \B([-b])
+--- s eval: "-"
+
+
+
+=== TEST 170: \B\z
+--- re: a\B\z
+--- s eval: "a\n"
+
+
+
+=== TEST 171: \h
+--- re: \h+
+--- s eval: "\f\r\t "
+
+
+
+=== TEST 172: \H
+--- re: \H+
+--- s eval: "\f\r\t "
+
+
+
+=== TEST 173: \v
+--- re: \v+
+--- s eval: " \t\n\x0b\f\r\x85\x86"
+
+
+
+=== TEST 174: \V
+--- re: \v+
+--- s eval: "\x86 \t\n\x0b\f\r\x85"
+
+
+
+=== TEST 175: \h
+--- re: [\h]+
+--- s eval: "\f\r\t "
+
+
+
+=== TEST 176: \H
+--- re: [\H]+
+--- s eval: "\f\r\t "
+
+
+
+=== TEST 177: \v
+--- re: [\v]+
+--- s eval: " \t\n\x0b\f\r\x85\x86"
+--- cap: (2, 7)
+
+
+
+=== TEST 178: \V
+--- re: [\V]+
+--- s eval: "\x86 \t\n\x0b\f\r\x85"
+--- cap: (0, 3)
+
+
+
+=== TEST 179: [\b]
+--- re: [\b]+
+--- s eval: "a\b\b"
+
+
+
+=== TEST 180: [[]]
+--- re: [[]]+
+--- s eval: "a[[[[]]]]"
+
+
+
+=== TEST 181: [][]
+--- re: [][]+
+--- s eval: "a[[[[]]]]"
+
+
+
+=== TEST 182: [][]
+--- re: [^][]+
+--- s eval: "ab[[[[]]]]"
+
+
+
+=== TEST 183: \N
+--- re: \N+
+--- s eval: "hello!\r\t "
+
+
+
+=== TEST 184: \x{DD}
+--- re: \x{0a}
+--- s eval: "a\nb"
+
+
+
+=== TEST 185: \x{DD}
+--- re: \x{0a}b
+--- s eval: "a\nb"
+
+
+
+=== TEST 186: \x{DD}
+--- re: \x{0a
+--- s eval: "a\nb"
+--- err
+[error] syntax error at pos 0
+
+
+
+=== TEST 187: \x{DD}
+--- re: \xa
+--- s eval: "a\nb"
+
+
+
+=== TEST 188: \xDD
+--- re: \x0a
+--- s eval: "a\nb"
+
+
+
+=== TEST 189: \xDD
+--- re: \x0ab
+--- s eval: "a\nb"
+
+
+
+=== TEST 190: \xDD
+--- re: [\x0ab]+
+--- s eval: "a\nb"
+
+
+
+=== TEST 191: \xD
+--- re: [\xa]+
+--- s eval: "a\nb"
+
+
+
+=== TEST 192: \xDD
+--- re: \x0a!
+--- s eval: "a\n!"
+
+
+
+=== TEST 193: \xDD
+--- re: \xa!
+--- s eval: "a\n!"
+
+
+
+=== TEST 194: \x{DD}
+--- re: \x{a}b
+--- s eval: "a\nb"
+
+
+
+=== TEST 195: \x{DD}
+--- re: \x{A}b
+--- s eval: "a\nb"
+
+
+
+=== TEST 196: \x{DD}
+--- re: [\x{A}b]+
+--- s eval: "a\nb"
+
+
+
+=== TEST 197: \o{dd}
+--- re: \o{12}
+--- s eval: "a\nb"
+
+
+
+=== TEST 198: \o{ddd}
+--- re: \o{012}b
+--- s eval: "a\nb"
+
+
+
+=== TEST 199: \o{ddd}
+--- re: [\o{012}b]+
+--- s eval: "a\nb"
+
+
+
+=== TEST 200: \o{ddd}
+--- re: [\o{12}b]+
+--- s eval: "a\nb"
+
+
+
+=== TEST 201: \o{ddd}
+--- re: [\o{1}b]+
+--- s eval: "a\1b"
+
+
+
+=== TEST 202: \o{ddd}
+--- re: [\o{1
+--- s eval: "a\1b"
+--- err
+[error] syntax error at pos 0
+
+
+
+=== TEST 203: \oDD
+--- re: \o12
+--- s eval: "a\nb"
+--- err
+[error] syntax error at pos 0
+
+
+
+=== TEST 204: \oDD
+--- re: \o{12
+--- s eval: "a\nb"
+--- err
+[error] syntax error at pos 0
+
+
+
+=== TEST 205: [\02]
+--- re: [\02]
+--- s eval: "a\2b"
+
+
+
+=== TEST 206: [\12]
+--- re: [\12]
+--- s eval: "a\nb"
+
+
+
+=== TEST 207:
+--- re: [\012]
+--- s eval: "a\nb"
+
+
+
+=== TEST 208:
+--- re: [\0123]
+--- s eval: "a\n3"
+
+
+
+=== TEST 209:
+--- re: [\0123]+
+--- s eval: "a\n3"
+
+
+
+=== TEST 210:
+--- re: [\0123]+
+--- s eval: "a\n23"
+
+
+
+=== TEST 211: [\012]
+--- re: [\018]
+--- s eval: "a\n8"
+
+
+
+=== TEST 212:
+--- re: \02
+--- s eval: "a\2b"
+
+
+
+=== TEST 213:
+--- re: \12
+--- s eval: "a\nb"
+
+
+
+=== TEST 214:
+--- re: \012
+--- s eval: "a\nb"
+
+
+
+=== TEST 215:
+--- re: \0123
+--- s eval: "a\n3"
+
+
+
+=== TEST 216: [\012]
+--- re: \018
+--- s eval: "a\n8"
+
+
+
+=== TEST 217: \cb
+--- re: \cb
+--- s eval: "a\0028"
+
+
+
+=== TEST 218: \cB
+--- re: \cB
+--- s eval: "a\0028"
+
+
+
+=== TEST 219: \c
+--- re: \c
+--- s eval: "a\0028"
+--- err
+[error] syntax error at pos 0
+
+
+
+=== TEST 220: [\cb]
+--- re: [\cb]+
+--- s eval: "a\0028"
+
+
+
+=== TEST 221: \cB
+--- re: [\cB]+
+--- s eval: "a\0028"
+
+
+
+=== TEST 222: \c
+--- re: [\c]
+--- s eval: "a\0028"
+--- err
+[error] syntax error at pos 0
+
+
+
+=== TEST 223: \cB8
+--- re: [\cB8]+
+--- s eval: "a\0028"
+
+
+
+=== TEST 224: literal :
+--- re: a:\w+
+--- s eval: "a:hello"
+
+
+
+=== TEST 225: from > to and to == 0
+--- re: a{1,0}
+--- s: a
+--- err
+[error] syntax error at pos 1
+
+
+
+=== TEST 226: trailing \
+--- re: \
+--- s: a
+--- err
+[error] syntax error at pos 0
+
+
+
+=== TEST 227: from > to
+--- re: [D-C]
+--- s: a
+--- err
+[error] syntax error at pos 0
+
+
+
+=== TEST 228: the "possessive" quantifier form not supported
+--- re: a++
+--- s: a
+--- err
+[error] syntax error at pos 2
+
+
+
+=== TEST 229: the "possessive" quantifier form not supported
+--- re: a*+
+--- s: a
+--- err
+[error] syntax error at pos 2
+
+
+
+=== TEST 230: the "possessive" quantifier form not supported
+--- re: a?+
+--- s: a
+--- err
+[error] syntax error at pos 2
+
+
+
+=== TEST 231: the "possessive" quantifier form not supported
+--- re: a{3}+
+--- s: a
+--- err
+[error] syntax error at pos 4
+
+
+
+=== TEST 232: unmatched ")"
+--- re: \(ab)
+--- s: hello(ab)
+--- err
+[error] syntax error at pos 4
+
+
+
+=== TEST 233: unmatched "]"
+--- re: \[ab]
+--- s: hello[ab]
+
+
+
+=== TEST 234: escaped !, @, \, /, %, and ","
+--- re: [\!\,\@\\\/\%]+
+--- s: hello,!@\/%
+
+
+
+=== TEST 235: escaped !, @, \, /, %, and ,
+--- re: \!\,\@\\\/\%
+--- s: hello,!@\/%
+
+
+
+=== TEST 236: \c\X
+--- re: \c\X
+--- s eval: "\034X"
+
+
+
+=== TEST 237: \c\.
+--- re: \c\.
+--- s eval: "\034X"
+
+
+
+=== TEST 238: \c\
+--- re: \c\
+--- s eval: "\034X"
+
+
+
+=== TEST 239: \C
+--- re: \C+
+--- s eval: "hello world!\n\r"
+--- SKIP
+
+
+
+=== TEST 240: a{0,n}
+--- re: a{0,3}
+--- s:
+
+
+
+=== TEST 241: a{0,n}
+--- re: a{0,3}
+--- s: aaaa
+
+
+
+=== TEST 242: \0 in target string
+--- re: a
+--- s eval: "\0aaaa"
+
+
+
+=== TEST 243: temporary captures
+--- re: (?:a|(ab))cd
+--- s: babcd
+--- temp_cap: [(1, -1)] [(1, -1)] [(1, -1)] [(1, -1)]
+
+
+
+=== TEST 244: /i - in
+--- re: [abd-f]+
+--- s: bFEBADaC
+--- flags: i
+
+
+
+=== TEST 245: /i - not in
+--- re: [^abd-f]+
+--- s: bFEBADaCz-
+--- flags: i
+
+
+
+=== TEST 246: /i - testinput1:1685
+--- re: word (?:[a-zA-Z0-9]+ ){0,300}otherword
+--- s eval: "word cat dog elephant mussel cow horse canary baboon snake shark the quick brown fox and the lazy dog and several other words getting close to thirty by now I hope"
+--- flags: i
+
+
+
+=== TEST 247: /i - char
+--- re: hello
+--- s: ZAhHElLO
+--- flags: i
+
+
+
+=== TEST 248: /i - char
+--- re: hello
+--- s: ZAHhello
+--- flags: i
+
+
+
+=== TEST 249: match early
+--- re: \s+
+--- s eval: "abc \t\n\f\rd"
+--- temp_cap chop
+[(1, -1)] [(2, -1)] [(3, -1)] [(3, -1)](3, 4) [(3, -1)](3, 5) [(3, -1)](3, 6) [(3, -1)](3, 7) [(3, -1)](3, 8)
+
+
+
+=== TEST 250: pending match
+--- re: abcde|bc
+--- s eval: "abcdf"
+--- temp_cap chop
+[(0, -1)] [(0, -1)] [(0, -1)](1, 3) [(0, -1)](1, 3)
+
+
+
+=== TEST 251: \&
+--- re: a\&b
+--- s eval: 'a&b'
+
+
+
+=== TEST 252: [\&]
+--- re: a[\&]b
+--- s eval: 'a&b'
+
+
+
+=== TEST 253: \# \" \'
+--- re: a\#\"\'b
+--- s eval: 'a#"\'b'
+
+
+
+=== TEST 254: [\#\"\']
+--- re: [a\#\"\'b]{4}
+--- s eval: 'a#"\'b'

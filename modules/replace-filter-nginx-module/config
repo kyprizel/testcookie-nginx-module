@@ -1,0 +1,93 @@
+ngx_feature="agentzh's sregex library"
+ngx_feature_libs="-lsregex"
+ngx_feature_name=
+ngx_feature_run=no
+ngx_feature_incs="#include <sregex/sregex.h>"
+ngx_feature_path=
+ngx_feature_test="sre_regex_t        *re;
+                  sre_program_t      *prog;
+                  sre_pool_t         *pool;
+                  u_char              s[] = {'a', 'b', 'c'};
+                  sre_int_t           rc, err_offset, ovector;
+                  sre_int_t          *pending_matched;
+                  sre_uint_t          ncaps;
+                  sre_vm_pike_ctx_t  *pctx;
+                  pool = sre_create_pool(1024);
+                  re = sre_regex_parse(pool, s, &ncaps, 0, &err_offset);
+                  prog = sre_regex_compile(pool, re);
+                  pctx = sre_vm_pike_create_ctx(pool, prog, &ovector, 0);
+                  rc = sre_vm_pike_exec(pctx, s, 32, 1, &pending_matched);
+                  sre_destroy_pool(pool)"
+
+if [ -n "$SREGEX_INC" -o -n "$SREGEX_LIB" ]; then
+    # explicitly set sregex lib path
+    ngx_feature="agentzh's sregex library in $SREGEX_LIB and $SREGEX_INC (specified by the SREGEX_LIB and SREGEX_INC env)"
+    ngx_feature_path="$SREGEX_INC"
+    if [ $NGX_RPATH = YES ]; then
+        ngx_feature_libs="-R$SREGEX_LIB -L$SREGEX_LIB -lsregex"
+    else
+        ngx_feature_libs="-L$SREGEX_LIB -lsregex"
+    fi
+
+    . auto/feature
+
+    if [ $ngx_found = no ]; then
+        cat << END
+        $0: error: ngx_http_replace_filter_module requires agentzh's sregex library and SREGEX_LIB is defined as $SREGEX_LIB and SREGEX_INC (path for sregex/sregex.h) $SREGEX_INC, but we cannot find sregex there.
+END
+        exit 1
+    fi
+
+else
+    # auto-discovery
+    ngx_feature="agentzh's sregex library"
+    ngx_feature_libs="-lsregex"
+    . auto/feature
+
+    if [ $ngx_found = no ]; then
+        # default installation prefix in sregex
+        ngx_feature="agentzh's sregex library in /usr/local/"
+        ngx_feature_path="/usr/local/include"
+        if [ $NGX_RPATH = YES ]; then
+            ngx_feature_libs="-R/usr/local/lib -L/usr/local/lib -lsregex"
+        else
+            ngx_feature_libs="-L/usr/local/lib -lsregex"
+        fi
+        . auto/feature
+    fi
+fi
+
+if [ $ngx_found = no ]; then
+ cat << END
+ $0: error: ngx_http_replace_filter_module requires agentzh's sregex library.
+END
+ exit 1
+fi
+
+REPLACE_FILTER_SRCS="$ngx_addon_dir/src/ngx_http_replace_filter_module.c \
+                     $ngx_addon_dir/src/ngx_http_replace_script.c \
+                     $ngx_addon_dir/src/ngx_http_replace_parse.c \
+                     $ngx_addon_dir/src/ngx_http_replace_util.c"
+REPLACE_FILTER_DEPS="$ngx_addon_dir/src/ngx_http_replace_filter_module.h \
+                     $ngx_addon_dir/src/ngx_http_replace_script.h \
+                     $ngx_addon_dir/src/ngx_http_replace_parse.h \
+                     $ngx_addon_dir/src/ngx_http_replace_util.h"
+
+ngx_addon_name=ngx_http_replace_filter_module
+if test -n "$ngx_module_link"; then
+    ngx_module_type=HTTP_AUX_FILTER
+    ngx_module_name=$ngx_addon_name
+    ngx_module_srcs="$REPLACE_FILTER_SRCS"
+    ngx_module_deps="$REPLACE_FILTER_DEPS"
+    ngx_module_incs=$ngx_feature_path
+    ngx_module_libs=$ngx_feature_libs
+
+    . auto/module
+
+else
+    HTTP_AUX_FILTER_MODULES="$HTTP_AUX_FILTER_MODULES $ngx_addon_name"
+    NGX_ADDON_SRCS="$NGX_ADDON_SRCS $REPLACE_FILTER_SRCS"
+    NGX_ADDON_DEPS="$NGX_ADDON_DEPS $REPLACE_FILTER_DEPS"
+    CORE_INCS="$CORE_INCS $ngx_feature_path"
+    CORE_LIBS="$CORE_LIBS $ngx_feature_libs"
+fi
