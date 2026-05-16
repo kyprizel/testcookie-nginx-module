@@ -1389,6 +1389,17 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
 					  &cookie->value);
 #endif
 
+    {
+        size_t  i;
+
+        for (i = 0; i < ctx->cookie.len; i++) {
+            if (ctx->cookie.data[i] == ';') {
+                ctx->cookie.len = i;
+                break;
+            }
+        }
+    }
+
     if (ctx->cookie.len != MD5_DIGEST_LENGTH*2) {
         return ctx;
     }
