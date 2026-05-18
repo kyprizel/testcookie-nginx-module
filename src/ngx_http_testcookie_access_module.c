@@ -1372,6 +1372,22 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
 	if (n == NGX_DECLINED) {
 		return ctx;
 	}
+#elif defined(nginx_version) && nginx_version >= 1029006
+	/*
+	 * nginx 1.29.6 split ngx_http_parse_multi_header_lines() into two
+	 * functions: the public one now uses ',' as the separator (correct
+	 * for headers like "Accept"), and a new ngx_http_parse_cookie_lines()
+	 * uses ';' (correct for the "Cookie" header). Calling the old
+	 * function here would either return the entire remainder of the
+	 * Cookie header (when our cookie happens to be first) or fail to
+	 * find our cookie at all (when any other cookie precedes it),
+	 * trapping the client in a redirect loop in both cases.
+	 */
+	cookie = ngx_http_parse_cookie_lines(r, r->headers_in.cookie, &conf->name,
+										  &ctx->cookie);
+	if (cookie == NULL) {
+		return ctx;
+	}
 #else
 	cookie = ngx_http_parse_multi_header_lines(r, r->headers_in.cookie, &conf->name,
 										  &ctx->cookie);
