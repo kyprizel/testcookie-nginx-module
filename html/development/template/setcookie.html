@@ -1,0 +1,43 @@
+<html>
+<head><title>IronFox</title>
+    <script type='text/javascript' src='/sweet-alert.min.js'></script>
+    <link href='/sweet-alert.css' rel='stylesheet' type='text/css'/>
+</head>
+<body style='background-color:#ffffff;'>
+
+<script src='/f.js'></script>
+<script type='text/javascript' src='/iron.js'></script>
+<script>
+    var murmur;
+    var fingerprintReport = function () {
+        var d1 = new Date()
+        Fingerprint2.get(function (components) {
+             murmur = Fingerprint2.x64hash128(components.map(function (pair) {
+                return pair.value
+            }).join(), 31)
+            var d2 = new Date()
+            var time = d2 - d1
+
+        })
+    }
+
+    var cancelId
+    var cancelFunction
+
+    // see usage note in the README
+    if (window.requestIdleCallback) {
+        cancelId = requestIdleCallback(fingerprintReport)
+        cancelFunction = cancelIdleCallback
+    } else {
+        cancelId = setTimeout(fingerprintReport, 500)
+        cancelFunction = clearTimeout
+    }
+        var s = '$ironfox_cookie_enc_key$ironfox_cookie_enc_salt$ironfox_cookie_enc_iv$ironfox_cookie_enc_set$ironfox_cookie_enc_salt$rnd';
+        sweetAlert({'title': 'Verification Status'+murmur, 'text':'please click the button to continue, This message will not show again...','type': 'success', 'confirmButtonText': 'Continue'}, function () {
+            document.cookie = 'IronFox=' + UTCString(s) + '; expires=Thu, 31-Dec-37 23:55:55 GMT; path=/';
+            document.cookie = 'IronKey=' + murmur + '; expires=Thu, 31-Dec-37 23:55:55 GMT; path=/';
+            location.href = '$ironfox_cookie_nexturl';
+        })
+    </script>
+</body>
+</html>

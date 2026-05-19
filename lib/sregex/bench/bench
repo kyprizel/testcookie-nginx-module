@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+#E='valgrind --leak-check=full --quiet'
+E=
+
+$E ./sregex --thompson --thompson-jit --pike $1 $2
+
+./re1 --thompson --pike $1 $2
+
+$E ./pcre --default --jit --dfa $1 $2
+
+$E ./re2 $1 $2
+

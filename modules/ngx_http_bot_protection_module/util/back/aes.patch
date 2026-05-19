@@ -1,0 +1,18 @@
+--- aes.min.js  2012-05-05 22:03:32.000000000 +0400
++++ aes.min.new.js  2012-05-05 22:15:46.000000000 +0400
+@@ -767,6 +767,7 @@
+        var padCount = 0;
+        var padByte = -1;
+        var blockSize = 16;
++        if (data.length > 16) {
+        for (var i = data.length - 1; i >= data.length-1 - blockSize; i--) {
+            if (data[i] <= blockSize) {
+                if (padByte == -1)
+@@ -783,6 +784,7 @@
+        }
+        if (padCount > 0)
+            data.splice(data.length - padCount, padCount);
++        }
+    }
+    /*
+     * END MODE OF OPERATION SECTION

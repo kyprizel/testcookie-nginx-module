@@ -1,0 +1,309 @@
+1. HTTP GET flood, bots do not accept HTTP response headers
+
+server {
+    listen 80;
+    server_name domain.com;
+
+
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+    location / {
+        testcookie on;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+
+
+
+2. HTTP GET flood, bots accept HTTP response headers, but can't parse HTML
+
+server {
+    listen 80;
+    server_name domain.com;
+
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$uri?$query_string;
+    testcookie_get_only on;
+    testcookie_redirect_via_refresh on;
+    testcookie_refresh_template '<html><body><script>document.cookie="BPC=$testcookie_set";location.href="$testcookie_nexturl";</script></body></html>';
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+
+    location / {
+        testcookie on;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+
+3. Iframe with our URL was set on some popular site
+
+server {
+    listen 80;
+    server_name domain.com;
+
+
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+    testcookie_redirect_via_refresh on;
+    testcookie_refresh_template '<html><body><script>function bla() { document.cookie="BPC=$testcookie_set";location.href="$testcookie_nexturl";}</script><input type="submit" value="click me" onclick="bla();"></body></html>';
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+    location / {
+        testcookie on;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+
+
+4. HTTP GET flood, bots accept HTTP response headers, and can parse HTML
+
+server {
+    listen 80;
+    server_name domain.com;
+
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+    testcookie_redirect_via_refresh on;
+
+    testcookie_refresh_encrypt_cookie on;
+    testcookie_refresh_encrypt_cookie_key random;
+    testcookie_refresh_encrypt_cookie_iv random;
+    testcookie_refresh_template '<html><body>setting cookie...<script type=\"text/javascript\" src=\"/aes.min.js\" ></script><script>function toNumbers(d){var e=[];d.replace(/(..)/g,function(d){e.push(parseInt(d,16))});return e}function toHex(){for(var d=[],d=1==arguments.length&&arguments[0].constructor==Array?arguments[0]:arguments,e="",f=0;f<d.length;f++)e+=(16>d[f]?"0":"")+d[f].toString(16);return e.toLowerCase()}var a=toNumbers("$testcookie_enc_key"),b=toNumbers("$testcookie_enc_iv"),c=toNumbers("$testcookie_enc_set");document.cookie="BPC="+toHex(slowAES.decrypt(c,2,a,b))+"; expires=Thu, 31-Dec-37 23:55:55 GMT; path=/";location.href="$testcookie_nexturl";</script></body></html>';
+
+    location = /aes.min.js {
+        gzip on;
+        gzip_min_length 1000;
+        gzip_types text/plain;
+        root /var/www/public_html;
+    }
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+    location / {
+        testcookie on;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+
+5. HTTP GET flood, bots accept HTTP response headers, and can parse HTML,
+ then decrypt cookies client-side, but w/o JS emulation
+
+server {
+    listen 80;
+    server_name domain.com;
+
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+    testcookie_redirect_via_refresh on;
+    testcookie_refresh_encrypt_cookie on;
+    testcookie_refresh_encrypt_cookie_key deadbeefdeadbeefdeadbeefdeadbeef; #change it by cron
+    testcookie_refresh_encrypt_cookie_iv deadbeefdeadbeefdeadbeefdeadbeef; #change it by cron
+
+    testcookie_refresh_template
+     '<html>
+                                 <body>
+                                     Please wait...
+                                     <script type="text/javascript" src="/aes.min.js"></script>
+                                     <script>
+                                         function toNumbers(d) {
+                                             var e = [];
+                                             d.replace(/(..)/g, function(d) {
+                                                 e.push(parseInt(d, 16))
+                                             });
+                                             return e
+                                         }
+
+                                         function toHex() {
+                                             for (var d = [], d = 1 == arguments.length && arguments[0].constructor == Array ? arguments[0] : arguments, e = "", f = 0; f < d.length; f++) e += (16 > d[f] ? "0" : "") + d[f].toString(16);
+                                             return e.toLowerCase()
+                                         }
+                                           var a = toNumbers("$testcookie_enc_key"),
+                                             b = toNumbers("$testcookie_enc_iv"),
+                                             c = toNumbers("$testcookie_enc_set");
+
+                                         var now = new Date(),
+                                             time = now.getTime();
+                                         time += 3600 * 1000 * 24;
+                                         now.setTime(time);
+                                         document.cookie = "MOJiJ=" + toHex(slowAES.decrypt(c, 2, a, b)) + "; expires=" + now.toUTCString() + "; path=/";
+                                         location.href = "http://server/";
+                                     </script>
+                                 </body>
+                                 </html>
+';
+
+    location = /aes.min.js {
+        gzip on;
+        gzip_min_length 1000;
+        gzip_types text/plain;
+        root /var/www/public_html;
+    }
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+    location / {
+        testcookie on;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+
+6. User-Agent whitelisting example (not recomended!)
+
+server {
+    listen 80;
+    server_name domain.com;
+
+
+    testcookie on;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+
+
+    location = /cookies.html {
+        testcookie off;
+        root /var/www/public_html;
+    }
+
+    location / {
+        if ($http_user_agent =~ "Yandex|Google") {
+            testcookie off;
+        }
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+
+
+7. Whitelisting with "map"
+
+map $remote_addr $trusted {
+    default 0;
+    "127.0.0.1" 1;
+}
+
+server {
+    listen 80;
+    server_name domain.com;
+
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+    location / {
+        testcookie on;
+        testcookie_pass $trusted;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+
+    }
+}
+
+
+8. Dynamic whitelisting example (need to change modules order first!)
+
+server {
+    listen 80;
+    server_name domain.com;
+
+    testcookie off;
+    testcookie_name BPC;
+    testcookie_secret keepmescret;
+    testcookie_session $remote_addr;
+    testcookie_arg attempt;
+    testcookie_max_attempts 3;
+    testcookie_fallback /cookies.html?backurl=http://$host$request_uri;
+    testcookie_get_only on;
+
+    location = /cookies.html {
+        root /var/www/public_html;
+    }
+
+    location / {
+        testcookie on;
+        auth_request /precheck;
+        testcookie_pass $trusted;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8080;
+
+    }
+
+    location = /precheck {
+        proxy_pass http://127.0.0.1:9090;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        auth_request_set $trusted $upstream_http_x_trusted; 
+    }
+}

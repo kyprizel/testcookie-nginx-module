@@ -1,0 +1,4 @@
+version 0.0.9
+-- supporting anomaly detection
+-- simple management web dashboard
+-- simple cache implementation with linkedlist (replaced redis for connection polling and performance issue)

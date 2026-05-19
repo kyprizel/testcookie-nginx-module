@@ -1,0 +1,63 @@
+Name
+	ngx_http_header_inspect - Inspect HTTP headers
+
+Synopsis
+	location /foo {
+		inspect_headers on;
+		inspect_headers_log_violations on;
+		inspect_headers_log_uninspected on;
+		inspect_headers_block_violations on;
+
+		# only allow 3 range definitions in Range header
+		inspect_headers_range_max_byteranges 3;
+	}
+
+Limitations
+	Currently only inspects the following HTTP/1.1 headers:
+	Range, If-Range, If-Unmodified-Since, If-Modified-Since, Date,
+	Accept-Encoding, Accept-Language, Accept-Charset, Max-Forwards,
+	If-Match, If-None-Match, Last-Modified, Content-Length,
+	Expires, Content-Language, Content-Encoding, Allow, Host,
+	Accept, Connection, Content-Range, User-Agent, Upgrade, Via,
+	From, Pragma, Content-Type, Content-MD5, Authorization, Expect,
+	Proxy-Authorization, Warning, Trailer, Transfer-Encoding, TE,
+	Referer, Content-Location, Cache-Control
+
+Report Bugs
+	Create a ticket on the issue tracking interface of GitHub:
+        http://github.com/x-way/ngx_http_header_inspect/issues
+
+Source Repository
+	Available on GitHub:
+	http://github.com/x-way/ngx_http_header_inspect
+
+Author
+	Andreas Jaggi <andreas.jaggi@waterwave.ch>
+
+Copyright & License
+	Copyright (c) 2011 Andreas Jaggi
+
+	This module is licensed under the terms of the BSD license.
+
+	Redistribution and use in source and binary forms, with or without
+	modification, are permitted provided that the following conditions are 
+	met:
+
+	*   Redistributions of source code must retain the above copyright
+	    notice, this list of conditions and the following disclaimer.
+
+	*   Redistributions in binary form must reproduce the above copyright
+	    notice, this list of conditions and the following disclaimer in the 
+	    documentation and/or other materials provided with the distribution.
+
+	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS 
+	IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
+	TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+	PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+	HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+	SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+	TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+	PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+	LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+	NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.

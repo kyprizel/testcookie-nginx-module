@@ -1,0 +1,5 @@
+todo change default error pages like 403,404, etc.
+todo update dashboard and show all suspected, blocked and req statistical information
+todo build multi arch/ multi  linux distribution package (RPM, DEB)
+todo replace module  libsregex.so.0 automation
+todo rename all javascripts such as cryptojs
