@@ -1466,8 +1466,13 @@ ngx_http_testcookie_set_uid(ngx_http_request_t *r, ngx_http_testcookie_ctx_t *ct
         len += conf->samesite.len;
     }
 
-    if (conf->expires) {
+    if (conf->expires == NGX_HTTP_TESTCOOKIE_MAX_EXPIRES) {
         len += sizeof(expires) - 1;
+
+    } else if (conf->expires) {
+        /* ngx_http_cookie_time() prints a 4-digit year past 2037 */
+        len += sizeof("; expires=") - 1 + 2
+               + sizeof("Mon, 28-Sep-1970 06:00:00 GMT") - 1;
     }
 
     if (conf->domain.len) {
@@ -2047,8 +2052,14 @@ ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data)
 
 #ifdef REFRESH_COOKIE_ENCRYPTION
     if (ngx_strcmp(secret->data, "random") == 0) {
-        secret->len = MD5_DIGEST_LENGTH;
-        if (RAND_bytes(secret->data, MD5_DIGEST_LENGTH) != 1) {
+        /* secret->data still points at the "random" token, 7 bytes long */
+        secret->data = ngx_palloc(cf->pool, MD5_DIGEST_LENGTH*2);
+        if (secret->data == NULL) {
+            return NGX_CONF_ERROR;
+        }
+
+        secret->len = MD5_DIGEST_LENGTH*2;
+        if (RAND_bytes(secret->data, MD5_DIGEST_LENGTH*2) != 1) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "Openssl random secret generation error\n");
             return NGX_CONF_ERROR;
