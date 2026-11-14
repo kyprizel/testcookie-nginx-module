@@ -18,6 +18,10 @@
 #include <openssl/evp.h>
 #endif
 
+/* the module is always built with OpenSSL, see "config" */
+#include <openssl/crypto.h>
+#include <openssl/evp.h>
+
 #define NGX_HTTP_TESTCOOKIE_OFF     0
 #define NGX_HTTP_TESTCOOKIE_ON      1
 #define NGX_HTTP_TESTCOOKIE_VAR     2
@@ -29,6 +33,25 @@
     #define MD5_DIGEST_LENGTH 16
 #endif
 #define RFC1945_ATTEMPTS    4
+
+/*
+ * With testcookie_lifetime the cookie keeps its 16 bytes (32 hex digits):
+ * 4 bytes of expiry time (seconds since the epoch, big-endian) and the first
+ * 12 bytes of HMAC-SHA256(secret, expiry | session).
+ */
+#define TESTCOOKIE_EXPIRY_LEN  4
+#define TESTCOOKIE_SHA256_BLOCK  64
+
+/*
+ * HMAC-SHA256 key, prepared when the configuration is read: SHA-256 states
+ * after the key XOR ipad and the key XOR opad blocks (RFC 2104). A request
+ * copies them instead of hashing the key again, which keeps the signed
+ * cookie as cheap as the md5 one.
+ */
+typedef struct {
+    EVP_MD_CTX                 *inner;
+    EVP_MD_CTX                 *outer;
+} ngx_http_testcookie_key_t;
 
 typedef struct {
     ngx_uint_t                  enable;
@@ -43,6 +66,10 @@ typedef struct {
 
     ngx_str_t                   arg;
     ngx_str_t                   secret;
+    ngx_str_t                   previous_secret;
+    time_t                      lifetime;
+    ngx_http_testcookie_key_t  *sign_key;
+    ngx_http_testcookie_key_t  *previous_key;
     ngx_http_complex_value_t    session_key;
 
     ngx_int_t                   max_attempts;
@@ -119,6 +146,15 @@ static char *ngx_http_testcookie_expires(ngx_conf_t *cf, ngx_command_t *cmd, voi
 static char *ngx_http_testcookie_p3p(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_testcookie_samesite(ngx_conf_t *cf, void *post, void *data);
 static char *ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data);
+static char *ngx_http_testcookie_previous_secret(ngx_conf_t *cf, void *post, void *data);
+static char *ngx_http_testcookie_lifetime(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static ngx_http_testcookie_key_t *ngx_http_testcookie_hmac_key(ngx_conf_t *cf,
+    ngx_str_t *secret);
+static void ngx_http_testcookie_hmac_key_cleanup(void *data);
+static ngx_int_t ngx_http_testcookie_sign(ngx_http_request_t *r,
+    ngx_http_testcookie_key_t *key, uint32_t expiry, ngx_str_t *session, u_char *out);
+static ngx_uint_t ngx_http_testcookie_check_signed(ngx_http_request_t *r,
+    ngx_http_testcookie_conf_t *conf, u_char *hex, ngx_str_t *session);
 static char *ngx_http_testcookie_max_attempts(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_testcookie_whitelist_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy, void *conf);
@@ -149,6 +185,8 @@ static ngx_conf_post_handler_pt  ngx_http_testcookie_path_p = ngx_http_testcooki
 static ngx_conf_post_handler_pt  ngx_http_testcookie_p3p_p = ngx_http_testcookie_p3p;
 static ngx_conf_post_handler_pt  ngx_http_testcookie_samesite_p = ngx_http_testcookie_samesite;
 static ngx_conf_post_handler_pt  ngx_http_testcookie_secret_p = ngx_http_testcookie_secret;
+static ngx_conf_post_handler_pt  ngx_http_testcookie_previous_secret_p =
+    ngx_http_testcookie_previous_secret;
 
 static ngx_command_t  ngx_http_testcookie_access_commands[] = {
 
@@ -221,6 +259,20 @@ static ngx_command_t  ngx_http_testcookie_access_commands[] = {
       NGX_HTTP_LOC_CONF_OFFSET,
       offsetof(ngx_http_testcookie_conf_t, secret),
       &ngx_http_testcookie_secret_p },
+
+    { ngx_string("testcookie_previous_secret"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_str_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      offsetof(ngx_http_testcookie_conf_t, previous_secret),
+      &ngx_http_testcookie_previous_secret_p },
+
+    { ngx_string("testcookie_lifetime"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_testcookie_lifetime,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
 
     { ngx_string("testcookie_fallback"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
@@ -1251,6 +1303,7 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
     struct sockaddr_in6         *sin6;
 #endif
     ngx_md5_t                   md5;
+    uint64_t                    expiry;
     ngx_str_t                   value;
     ngx_str_t                   *check;
     ngx_http_variable_value_t   *vv = NULL;
@@ -1348,12 +1401,27 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
 
     check = &value;
 
-    ngx_md5_init(&md5);
-    ngx_md5_update(&md5, check->data, check->len);
-    if (conf->secret.len > 0) {
-        ngx_md5_update(&md5, conf->secret.data, conf->secret.len);
+    if (conf->lifetime > 0) {
+        expiry = (uint64_t) ngx_time() + (uint64_t) conf->lifetime;
+        if (expiry > 0xffffffff) {
+            expiry = 0xffffffff;
+        }
+
+        if (ngx_http_testcookie_sign(r, conf->sign_key, (uint32_t) expiry, check,
+                                     complex_hash)
+            != NGX_OK)
+        {
+            return NULL;
+        }
+
+    } else {
+        ngx_md5_init(&md5);
+        ngx_md5_update(&md5, check->data, check->len);
+        if (conf->secret.len > 0) {
+            ngx_md5_update(&md5, conf->secret.data, conf->secret.len);
+        }
+        ngx_md5_final(complex_hash, &md5);
     }
-    ngx_md5_final(complex_hash, &md5);
 
     ctx->uid_set = (u_char *) ngx_pcalloc(r->pool, MD5_DIGEST_LENGTH);
     if (ctx->uid_set == NULL) {
@@ -1431,11 +1499,222 @@ ngx_http_testcookie_get_uid(ngx_http_request_t *r, ngx_http_testcookie_conf_t *c
 
     ngx_memcpy(ctx->uid_got, ctx->cookie.data, ctx->cookie.len);
 
+    if (conf->lifetime > 0) {
+        ctx->ok = ngx_http_testcookie_check_signed(r, conf, ctx->uid_got, check);
+        return ctx;
+    }
+
     if (ngx_memcmp(ctx->uid_got, complex_hash_hex, MD5_DIGEST_LENGTH*2) == 0) {
         ctx->ok = 1;
+        return ctx;
+    }
+
+    if (conf->previous_secret.len > 0) {
+        ngx_md5_init(&md5);
+        ngx_md5_update(&md5, check->data, check->len);
+        ngx_md5_update(&md5, conf->previous_secret.data, conf->previous_secret.len);
+        ngx_md5_final(complex_hash, &md5);
+        ngx_hex_dump(complex_hash_hex, complex_hash, MD5_DIGEST_LENGTH);
+
+        if (ngx_memcmp(ctx->uid_got, complex_hash_hex, MD5_DIGEST_LENGTH*2) == 0) {
+            ctx->ok = 1;
+        }
     }
 
     return ctx;
+}
+
+
+/* one per worker process, reused by every request */
+static EVP_MD_CTX  *ngx_http_testcookie_md_ctx;
+
+/*
+ * out (16 bytes) = expiry, big-endian | HMAC-SHA256(secret, expiry | session)
+ * cut to the 12 bytes that are left.
+ */
+static ngx_int_t
+ngx_http_testcookie_sign(ngx_http_request_t *r, ngx_http_testcookie_key_t *key,
+    uint32_t expiry, ngx_str_t *session, u_char *out)
+{
+    u_char         e[TESTCOOKIE_EXPIRY_LEN];
+    u_char         md[EVP_MAX_MD_SIZE];
+    unsigned int   md_len;
+    EVP_MD_CTX    *c;
+
+    if (key == NULL) {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "testcookie: no key to sign the cookie with");
+        return NGX_ERROR;
+    }
+
+    if (ngx_http_testcookie_md_ctx == NULL) {
+        ngx_http_testcookie_md_ctx = EVP_MD_CTX_create();
+        if (ngx_http_testcookie_md_ctx == NULL) {
+            return NGX_ERROR;
+        }
+    }
+
+    c = ngx_http_testcookie_md_ctx;
+
+    e[0] = (u_char) (expiry >> 24);
+    e[1] = (u_char) (expiry >> 16);
+    e[2] = (u_char) (expiry >> 8);
+    e[3] = (u_char) expiry;
+
+    md_len = 0;
+
+    if (!EVP_MD_CTX_copy_ex(c, key->inner)
+        || !EVP_DigestUpdate(c, e, TESTCOOKIE_EXPIRY_LEN)
+        || !EVP_DigestUpdate(c, session->data, session->len)
+        || !EVP_DigestFinal_ex(c, md, &md_len)
+        || !EVP_MD_CTX_copy_ex(c, key->outer)
+        || !EVP_DigestUpdate(c, md, md_len)
+        || !EVP_DigestFinal_ex(c, md, &md_len)
+        || md_len < MD5_DIGEST_LENGTH - TESTCOOKIE_EXPIRY_LEN)
+    {
+        ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
+                      "testcookie: HMAC-SHA256 failed");
+        return NGX_ERROR;
+    }
+
+    ngx_memcpy(out, e, TESTCOOKIE_EXPIRY_LEN);
+    ngx_memcpy(out + TESTCOOKIE_EXPIRY_LEN, md,
+               MD5_DIGEST_LENGTH - TESTCOOKIE_EXPIRY_LEN);
+
+    return NGX_OK;
+}
+
+
+static ngx_http_testcookie_key_t *
+ngx_http_testcookie_hmac_key(ngx_conf_t *cf, ngx_str_t *secret)
+{
+    u_char                      block[TESTCOOKIE_SHA256_BLOCK];
+    u_char                      pad[TESTCOOKIE_SHA256_BLOCK];
+    ngx_uint_t                  i;
+    unsigned int                len;
+    ngx_pool_cleanup_t         *cln;
+    ngx_http_testcookie_key_t  *key;
+
+    key = ngx_pcalloc(cf->pool, sizeof(ngx_http_testcookie_key_t));
+    if (key == NULL) {
+        return NULL;
+    }
+
+    cln = ngx_pool_cleanup_add(cf->pool, 0);
+    if (cln == NULL) {
+        return NULL;
+    }
+
+    cln->handler = ngx_http_testcookie_hmac_key_cleanup;
+    cln->data = key;
+
+    key->inner = EVP_MD_CTX_create();
+    key->outer = EVP_MD_CTX_create();
+    if (key->inner == NULL || key->outer == NULL) {
+        goto failed;
+    }
+
+    /* a key longer than the block is hashed first */
+    ngx_memzero(block, sizeof(block));
+
+    if (secret->len > TESTCOOKIE_SHA256_BLOCK) {
+        if (!EVP_Digest(secret->data, secret->len, block, &len, EVP_sha256(), NULL)) {
+            goto failed;
+        }
+
+    } else {
+        ngx_memcpy(block, secret->data, secret->len);
+    }
+
+    for (i = 0; i < TESTCOOKIE_SHA256_BLOCK; i++) {
+        pad[i] = block[i] ^ 0x36;
+    }
+
+    if (!EVP_DigestInit_ex(key->inner, EVP_sha256(), NULL)
+        || !EVP_DigestUpdate(key->inner, pad, sizeof(pad)))
+    {
+        goto failed;
+    }
+
+    for (i = 0; i < TESTCOOKIE_SHA256_BLOCK; i++) {
+        pad[i] = block[i] ^ 0x5c;
+    }
+
+    if (!EVP_DigestInit_ex(key->outer, EVP_sha256(), NULL)
+        || !EVP_DigestUpdate(key->outer, pad, sizeof(pad)))
+    {
+        goto failed;
+    }
+
+    OPENSSL_cleanse(block, sizeof(block));
+    OPENSSL_cleanse(pad, sizeof(pad));
+
+    return key;
+
+failed:
+
+    OPENSSL_cleanse(block, sizeof(block));
+    OPENSSL_cleanse(pad, sizeof(pad));
+
+    ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "testcookie: SHA-256 failed");
+
+    return NULL;
+}
+
+
+static void
+ngx_http_testcookie_hmac_key_cleanup(void *data)
+{
+    ngx_http_testcookie_key_t  *key = data;
+
+    if (key->inner != NULL) {
+        EVP_MD_CTX_destroy(key->inner);
+    }
+
+    if (key->outer != NULL) {
+        EVP_MD_CTX_destroy(key->outer);
+    }
+}
+
+
+/*
+ * A signed cookie passes until the expiry it carries, if the signature is
+ * right for testcookie_secret or for testcookie_previous_secret.
+ * hex is 32 hex digits, checked by the caller.
+ */
+static ngx_uint_t
+ngx_http_testcookie_check_signed(ngx_http_request_t *r,
+    ngx_http_testcookie_conf_t *conf, u_char *hex, ngx_str_t *session)
+{
+    u_char    got[MD5_DIGEST_LENGTH], want[MD5_DIGEST_LENGTH];
+    uint32_t  expiry;
+
+    ngx_hextobin(got, hex, MD5_DIGEST_LENGTH*2);
+
+    expiry = ((uint32_t) got[0] << 24) | ((uint32_t) got[1] << 16)
+             | ((uint32_t) got[2] << 8) | (uint32_t) got[3];
+
+    if ((uint64_t) expiry < (uint64_t) ngx_time()) {
+        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
+                       "testcookie: signed cookie expired");
+        return 0;
+    }
+
+    if (ngx_http_testcookie_sign(r, conf->sign_key, expiry, session, want) == NGX_OK
+        && CRYPTO_memcmp(got, want, MD5_DIGEST_LENGTH) == 0)
+    {
+        return 1;
+    }
+
+    if (conf->previous_key != NULL
+        && ngx_http_testcookie_sign(r, conf->previous_key, expiry, session, want)
+           == NGX_OK
+        && CRYPTO_memcmp(got, want, MD5_DIGEST_LENGTH) == 0)
+    {
+        return 1;
+    }
+
+    return 0;
 }
 
 
@@ -1633,6 +1912,8 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
      *     conf->arg.data = NULL;
      *     conf->secret.len = 0;
      *     conf->secret.data = NULL;
+     *     conf->previous_secret.len = 0;
+     *     conf->previous_secret.data = NULL;
      *     conf->session_key.value.data = NULL;
      *     conf->session_key.value.len = 0;
      *     conf->fallback.len = 0;
@@ -1646,6 +1927,7 @@ ngx_http_testcookie_create_conf(ngx_conf_t *cf)
 
     conf->enable = NGX_CONF_UNSET;
     conf->expires = NGX_CONF_UNSET;
+    conf->lifetime = NGX_CONF_UNSET;
     conf->max_attempts = NGX_CONF_UNSET;
     conf->whitelist = NULL;
 #if (NGX_HAVE_INET6)
@@ -1693,6 +1975,7 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
     ngx_conf_merge_str_value(conf->samesite, prev->samesite, "; SameSite=None");
     ngx_conf_merge_str_value(conf->arg, prev->arg, "");
     ngx_conf_merge_str_value(conf->secret, prev->secret, "");
+    ngx_conf_merge_str_value(conf->previous_secret, prev->previous_secret, "");
 
     ngx_conf_merge_str_value(conf->fallback, prev->fallback, "");
     ngx_conf_merge_str_value(conf->refresh_template, prev->refresh_template, "");
@@ -1700,6 +1983,47 @@ ngx_http_testcookie_merge_conf(ngx_conf_t *cf, void *parent, void *child)
 
     ngx_conf_merge_value(conf->max_attempts, prev->max_attempts, RFC1945_ATTEMPTS);
     ngx_conf_merge_sec_value(conf->expires, prev->expires, 0);
+    ngx_conf_merge_sec_value(conf->lifetime, prev->lifetime, 0);
+
+    /* a signature without a key is no signature */
+    if (conf->enable != NGX_HTTP_TESTCOOKIE_OFF && conf->lifetime > 0
+        && conf->secret.len == 0)
+    {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "\"testcookie_lifetime\" needs \"testcookie_secret\"");
+        return NGX_CONF_ERROR;
+    }
+
+    /* the keys are prepared once and shared by the levels that inherit them */
+    if (conf->lifetime > 0 && conf->secret.len > 0) {
+        if (prev->sign_key != NULL && prev->secret.data == conf->secret.data
+            && prev->secret.len == conf->secret.len)
+        {
+            conf->sign_key = prev->sign_key;
+
+        } else {
+            conf->sign_key = ngx_http_testcookie_hmac_key(cf, &conf->secret);
+            if (conf->sign_key == NULL) {
+                return NGX_CONF_ERROR;
+            }
+        }
+
+        if (conf->previous_secret.len == 0) {
+            conf->previous_key = NULL;
+
+        } else if (prev->previous_key != NULL
+                   && prev->previous_secret.data == conf->previous_secret.data
+                   && prev->previous_secret.len == conf->previous_secret.len)
+        {
+            conf->previous_key = prev->previous_key;
+
+        } else {
+            conf->previous_key = ngx_http_testcookie_hmac_key(cf, &conf->previous_secret);
+            if (conf->previous_key == NULL) {
+                return NGX_CONF_ERROR;
+            }
+        }
+    }
 
     if (conf->whitelist == NULL) {
         conf->whitelist = prev->whitelist;
@@ -2063,6 +2387,52 @@ ngx_http_testcookie_secret(ngx_conf_t *cf, void *post, void *data)
         return NGX_CONF_ERROR;
     }
 
+
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_testcookie_previous_secret(ngx_conf_t *cf, void *post, void *data)
+{
+    ngx_str_t  *secret = data;
+
+    /* a random previous secret would never match a cookie */
+    if (ngx_strcmp(secret->data, "random") == 0) {
+        return "cannot be \"random\"";
+    }
+
+    if (secret->len < MD5_DIGEST_LENGTH*2) {
+        return "is too short, should be 32 bytes or more";
+    }
+
+    return NGX_CONF_OK;
+}
+
+static char *
+ngx_http_testcookie_lifetime(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    ngx_http_testcookie_conf_t *ucf = conf;
+
+    ngx_str_t  *value;
+    time_t      lifetime;
+
+    if (ucf->lifetime != NGX_CONF_UNSET) {
+        return "is duplicate";
+    }
+
+    value = cf->args->elts;
+
+    if (ngx_strcmp(value[1].data, "off") == 0) {
+        ucf->lifetime = 0;
+        return NGX_CONF_OK;
+    }
+
+    lifetime = ngx_parse_time(&value[1], 1);
+    if (lifetime == (time_t) NGX_ERROR || lifetime == 0) {
+        return "invalid value";
+    }
+
+    ucf->lifetime = lifetime;
 
     return NGX_CONF_OK;
 }
