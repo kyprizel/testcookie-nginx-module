@@ -402,6 +402,15 @@ ngx_http_send_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  *conf)
     ngx_buf_t    *b;
     ngx_chain_t   out;
 
+    /*
+     * The page is sent from the access phase, before anyone has read the
+     * request body: discard it, or on a keep-alive connection the body is
+     * read as the next request.
+     */
+    if (ngx_http_discard_request_body(r) != NGX_OK) {
+        r->keepalive = 0;
+    }
+
     len = r->headers_out.location->value.len;
     location = r->headers_out.location->value.data;
 
@@ -478,6 +487,11 @@ ngx_http_send_custom_refresh(ngx_http_request_t *r, ngx_http_testcookie_conf_t  
     ngx_buf_t    *b;
     ngx_chain_t   out;
     ngx_str_t     compiled_refresh_template;
+
+    /* see ngx_http_send_refresh() */
+    if (ngx_http_discard_request_body(r) != NGX_OK) {
+        r->keepalive = 0;
+    }
 
     r->err_status = conf->refresh_status;
 
