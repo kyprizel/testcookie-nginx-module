@@ -15,7 +15,7 @@ __DATA__
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -32,13 +32,13 @@ __DATA__
 GET /?a=test
 --- error_code: 200
 --- response_body_like eval
-"cc54797809d466c4dc3a40a83c472ddd deadbeefdeadbeefdeadbeefdeadbeef deadbeefdeadbeefdeadbeefdeadbeef"
+"fe58413891e39e920fc73b22261b7606 deadbeefdeadbeefdeadbeefdeadbeef deadbeefdeadbeefdeadbeefdeadbeef"
 
 === TEST 2: Basic GET request, custom refresh template, encrypted variables, random key
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -61,7 +61,7 @@ GET /?a=test
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -84,7 +84,7 @@ GET /?a=test
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -107,7 +107,7 @@ GET /?a=test
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -130,7 +130,7 @@ GET /?a=test
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -144,7 +144,7 @@ GET /?a=test
 --- config
         testcookie on;
 --- request
-GET /?a=test
+HEAD /?a=test
 --- response_headers
 Content-Length: 98
 --- error_code: 200

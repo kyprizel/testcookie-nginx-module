@@ -4,7 +4,7 @@
 use lib 'lib';
 use Test::Nginx::Socket;
 
-plan tests => repeat_each(1) * 3 * blocks() - 7;
+plan tests => repeat_each(1) * 3 * blocks() - 5;
 no_long_string();
 no_root_location();
 $ENV{TEST_NGINX_SERVROOT} = server_root();
@@ -15,7 +15,7 @@ __DATA__
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -25,8 +25,8 @@ __DATA__
 --- request
 GET /?a=test HTTP/1.1
 --- response_headers
-Location: http://localhost:30001/?a=test&tstc=1
-Set-Cookie: BPC=4cfb861a6a81106e7660f6eab1d10e0b; path=/
+Location: http://localhost/?a=test&tstc=1
+Set-Cookie: BPC=87397509174b26fffd76bf2ab56b9b09; path=/; SameSite=None; Secure
 --- error_code: 307
 
 
@@ -34,7 +34,7 @@ Set-Cookie: BPC=4cfb861a6a81106e7660f6eab1d10e0b; path=/
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -44,8 +44,8 @@ Set-Cookie: BPC=4cfb861a6a81106e7660f6eab1d10e0b; path=/
 --- request
 GET /?a=test&tstc=1 HTTP/1.1
 --- response_headers
-Location: http://localhost:30001/?a=test&tstc=2
-Set-Cookie: BPC=4cfb861a6a81106e7660f6eab1d10e0b; path=/
+Location: http://localhost/?a=test&tstc=2
+Set-Cookie: BPC=87397509174b26fffd76bf2ab56b9b09; path=/; SameSite=None; Secure
 --- error_code: 307
 
 
@@ -53,7 +53,7 @@ Set-Cookie: BPC=4cfb861a6a81106e7660f6eab1d10e0b; path=/
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -70,7 +70,7 @@ Location: http://google.com/cookies.html?backurl=http://localhost/?a=test&tstc=3
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -82,15 +82,15 @@ GET /?a=test HTTP/1.1
 --- more_headers
 User-Agent: Mozilla
 --- response_headers
-Location: http://localhost:30001/?a=test&tstc=1
-Set-Cookie: BPC=30f59f604967b09bb8f1e21caf869cb3; path=/
+Location: http://localhost/?a=test&tstc=1
+Set-Cookie: BPC=44d857d236ab4b7c9b21a25f368290e5; path=/; SameSite=None; Secure
 --- error_code: 307
 
 === TEST 5: Basic GET request, META refresh
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -103,14 +103,14 @@ GET /?a=test
 --- more_headers
 User-Agent: Mozilla
 --- response_headers
-Set-Cookie: BPC=30f59f604967b09bb8f1e21caf869cb3; path=/
+Set-Cookie: BPC=44d857d236ab4b7c9b21a25f368290e5; path=/; SameSite=None; Secure
 --- error_code: 200
 
 === TEST 6: Basic GET request, whitelist
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -132,7 +132,7 @@ GET /?a=test
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_max_attempts 3;
     testcookie_fallback http://google.com/cookies.html?backurl=http://$host$request_uri;
@@ -143,15 +143,15 @@ GET /?a=test HTTP/1.1
 --- more_headers
 User-Agent: Mozilla
 --- response_headers
-Location: http://localhost:30001/?a=test
-Set-Cookie: BPC=30f59f604967b09bb8f1e21caf869cb3; path=/
+Location: http://localhost/?a=test
+Set-Cookie: BPC=44d857d236ab4b7c9b21a25f368290e5; path=/; SameSite=None; Secure
 --- error_code: 307
 
 === TEST 8: Basic GET request, secret changed
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret anothersecret;
+    testcookie_secret anothersecret-anothersecret-anothersecret;
     testcookie_arg tstc;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_max_attempts 3;
@@ -162,15 +162,16 @@ Set-Cookie: BPC=30f59f604967b09bb8f1e21caf869cb3; path=/
 GET /?a=test HTTP/1.1
 --- more_headers
 User-Agent: Mozilla
-Location: http://localhost:30001/?a=test&tstc=1
-Set-Cookie: BPC=dfdba774f493bc0605000b22132f745a; path=/
+--- response_headers
+Location: http://localhost/?a=test&tstc=1
+Set-Cookie: BPC=1e9d086c527e0c1bd6db3c963db80137; path=/; SameSite=None; Secure
 --- error_code: 307
 
 === TEST 9: Basic GET request, custom refresh template
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -189,7 +190,7 @@ GET /?a=test
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -207,11 +208,11 @@ GET /?a=test
 --- response_body_like eval
 "<html><head><title>It works!</title></head><body>It works!</body></html>"
 
-=== TEST 11: Basic GET request, complex rewrite, test internal redirects
+=== TEST 11: Basic GET request, complex rewrite, test internal redirects (Location: path of the original request, args of the rewritten one)
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -223,15 +224,15 @@ GET /?a=test
 --- request
 GET /test HTTP/1.1
 --- response_headers
-Location: http://localhost:30001/index.html?test&tstc=1
-Set-Cookie: BPC=4cfb861a6a81106e7660f6eab1d10e0b; path=/
+Location: http://localhost/test?test&tstc=1
+Set-Cookie: BPC=87397509174b26fffd76bf2ab56b9b09; path=/; SameSite=None; Secure
 --- error_code: 307
 
 === TEST 12: Basic GET request, test user-agent if condition
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -248,15 +249,15 @@ GET /?xxx HTTP/1.1
 --- more_headers
 User-Agent: test
 --- response_headers
-Location: http://localhost:30001/?xxx&tstc=1
-Set-Cookie: BPC=c6d90bd3e1bab267f80a4ef605cf61d0; path=/
+Location: http://localhost/?xxx&tstc=1
+Set-Cookie: BPC=35a693ca591f3de6cf1f77003066dc13; path=/; SameSite=None; Secure
 --- error_code: 307
 
 === TEST 13: Basic GET request, empty attempt counter, HTTP version 1.0
 --- http_config
     testcookie off;
     testcookie_name BPC;
-    testcookie_secret flagmebla;
+    testcookie_secret flagmebla-flagmebla-flagmebla-flagmebla;
     testcookie_session $remote_addr$http_user_agent;
     testcookie_arg tstc;
     testcookie_max_attempts 3;
@@ -266,6 +267,6 @@ Set-Cookie: BPC=c6d90bd3e1bab267f80a4ef605cf61d0; path=/
 --- request
 GET /?a=test HTTP/1.0
 --- response_headers
-Location: http://localhost:30001/?a=test&tstc=1
-Set-Cookie: BPC=4cfb861a6a81106e7660f6eab1d10e0b; path=/
+Location: http://localhost/?a=test&tstc=1
+Set-Cookie: BPC=87397509174b26fffd76bf2ab56b9b09; path=/; SameSite=None; Secure
 --- error_code: 302
