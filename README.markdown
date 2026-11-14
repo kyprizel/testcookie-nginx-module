@@ -9,7 +9,31 @@ Challenge cookies can be set using different methods:
 *   "Set-Cookie" + HTML meta refresh redirect
 *   Custom template, JavaScript can be used here.
 
-To prevent automatic parsing, challenge cookie value can be encrypted with AES-128 in CBC mode using custom/random key and iv, and then decrypted at client side with JavaScript.
+The challenge cookie value can be encrypted with AES-128 in CBC mode using custom/random key and iv, and then decrypted at client side with JavaScript, so that a client has to run a script to get it. This does not stop a client that parses the page: the key, the iv and the encrypted value are all in it (see below).
+
+What it stops and what it does not
+==================================
+
+The check runs in the access phase, before any backend, and costs almost nothing. It stops clients that do not keep cookies, and - with a JavaScript template - clients that do not run JavaScript: most flood scripts and scanners.
+
+It does not stop:
+
+*   **A script written for the challenge.** Everything needed to compute the cookie is in the answer: the cookie itself in Set-Cookie, or the key, iv and encrypted value in the page with *testcookie_refresh_encrypt_cookie*. Solvers for the common AES template are public. On a production site under a login brute force we saw a script send each challenged request again, with a valid cookie, within a second, without loading the page's script.
+*   **A real browser**, headless or not: it passes any JavaScript challenge.
+*   **Anything after the first pass.** The cookie is md5(*testcookie_session* + *testcookie_secret*): it has no expiry of its own, so once solved for a session value (by default the client's address) it stays valid until the secret changes. Changing the secret revokes every cookie at once.
+
+So use it to cut cheap traffic in front of the backend, and limit what a client that passed may do - request rates, login attempts - by other means.
+
+Common pitfalls
+===============
+
+*   **The script that solves the challenge must not be challenged.** If the challenge is on at a level that also covers the location serving the AES script (or any other file the template loads), add *testcookie off* there, or no browser can pass.
+*   **An *if* at server level does not switch the challenge off for a location**: the location's own setting wins. Use *testcookie_pass* with a *map*, or an *if* inside the location.
+*   **testcookie_get_only off challenges POST too.** A browser follows the challenge with GET, so the POST body is lost; use it where a client gets a GET page first (a login form, for example).
+*   **testcookie_deny_keepalive works on HTTP/1.x only**; on HTTP/2 and HTTP/3 it does nothing.
+*   **Not on port 80 or 443**: set *testcookie_port_in_redirect on*, or the redirect drops the port.
+*   **Behind a proxy or CDN** *$remote_addr* is the proxy's address unless the real IP module is set up, and every client shares one cookie.
+*   **nginx 1.29.6 changed how Cookie headers are parsed.** The module picks its parser at compile time, so with nginx 1.29.6 or later build a module version that has #83/#84 (May 2026). An older module builds against the new nginx without a warning and then redirects in a loop whenever another cookie comes before the challenge cookie in the request.
 
 
 Directives
@@ -55,11 +79,11 @@ testcookie_expires
 ------------------
 **syntax:** *testcookie_expires &lt;string&gt;*
 
-**default:** *31 Dec 2037 23:55:55 GMT*
+**default:** *none, a session cookie*
 
 **context:** *http, server, location*
 
-Sets cookie expiration value.
+Sets cookie expiration value: a time (for example *10d*) or *max* (31 Dec 2037 23:55:55 GMT). Without it the cookie lasts until the browser is closed.
 
 testcookie_path
 ---------------
@@ -123,11 +147,11 @@ testcookie_max_attempts
 -----------------------
 **syntax:** *testcookie_max_attempts &lt;integer&gt;*
 
-**default:** *5*
+**default:** *4*
 
 **context:** *http, server, location*
 
-Sets maximum number of redirects before user will be sent to fallback URL, according to RFC1945 can't be more than 5.
+Sets maximum number of redirects before user will be sent to fallback URL (or gets 403 without one). RFC1945 allows up to 5 redirects, so it can't be more than 4.
 
 If set to 0 - server will try to set cookie infinitely(actually, browser will show the error page).
 
@@ -161,7 +185,7 @@ testcookie_whitelist
 
 **context:** *http, server*
 
-Sets the networks for which the testing will not be used, add search engine networks here. Currently IPv4 CIDR only.
+Sets the networks for which the testing will not be used, add search engine networks here. IPv4 and IPv6 CIDR; an address without a mask is that one address (/32 or /128), not its network.
 
 testcookie_pass
 ---------------
@@ -205,7 +229,7 @@ also, if testcookie_refresh_encrypt_cookie enabled there are three more variable
 
     $testcookie_enc_key - encryption key (32 hex digits)
     $testcookie_enc_iv - encryption iv (32 hex digits)
-    $testcookie_enc_sec - encrypted cookie value (32 hex digits)
+    $testcookie_enc_set - encrypted cookie value (32 hex digits)
 
 testcookie_refresh_status
 -------------------------
@@ -363,7 +387,7 @@ For using client-side cookie decryption, you need to manually grab [SlowAES](htt
 Compatibility
 =============
 
-Module was tested with nginx 1.1+, but should work with 1.0+.
+Module was tested with nginx 1.1+, but should work with 1.0+. The test suite passes with nginx 1.22.1, 1.26.3, 1.28.3, 1.30.6 and 1.31.8, over HTTP/1.1, HTTP/2 and HTTP/3 alike (see the pitfall about nginx 1.29.6 above).
 
 Example configuration
 =====================
@@ -453,6 +477,12 @@ Test suite
 ===========
 
 This module comes with a Perl-driven test suite. Thanks to the [Test::Nginx](http://search.cpan.org/perldoc?Test::Nginx) module in the Perl world.
+
+Build nginx with the module, install Test::Nginx (`cpanm Test::Nginx`) and run
+
+    TEST_NGINX_BINARY=/path/to/objs/nginx prove -r t/
+
+For memory errors build nginx with `--with-cc-opt='-fsanitize=address -DNGX_DEBUG_PALLOC=1' --with-ld-opt=-fsanitize=address`: without `NGX_DEBUG_PALLOC` an overrun inside an nginx pool goes unnoticed.
 
 Sources
 =======
