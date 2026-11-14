@@ -125,6 +125,8 @@ static char *ngx_http_testcookie_whitelist(ngx_conf_t *cf, ngx_command_t *dummy,
 static char *ngx_http_testcookie_fallback_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_testcookie_session_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static char *ngx_http_testcookie_refresh_template_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_testcookie_refresh_template_file_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+static char *ngx_http_testcookie_compile_refresh_template(ngx_conf_t *cf, ngx_http_testcookie_conf_t *ucf);
 u_char *ngx_hextobin(u_char *dst, u_char *src, size_t len);
 int ngx_ishex(u_char *src, size_t len);
 static char *ngx_http_testcookie_refresh_status(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -267,6 +269,13 @@ static ngx_command_t  ngx_http_testcookie_access_commands[] = {
     { ngx_string("testcookie_refresh_template"),
       NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
       ngx_http_testcookie_refresh_template_slot,
+      NGX_HTTP_LOC_CONF_OFFSET,
+      0,
+      NULL },
+
+    { ngx_string("testcookie_refresh_template_file"),
+      NGX_HTTP_MAIN_CONF|NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_TAKE1,
+      ngx_http_testcookie_refresh_template_file_slot,
       NGX_HTTP_LOC_CONF_OFFSET,
       0,
       NULL },
@@ -1990,9 +1999,7 @@ ngx_http_testcookie_session_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 static char *
 ngx_http_testcookie_refresh_template_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
-    ngx_http_script_compile_t   sc;
     ngx_str_t                  *value;
-    ngx_uint_t                  n;
     ngx_http_testcookie_conf_t *ucf = conf;
 
     if (ucf->refresh_template.data) {
@@ -2008,6 +2015,110 @@ ngx_http_testcookie_refresh_template_slot(ngx_conf_t *cf, ngx_command_t *cmd, vo
     }
 
     ucf->refresh_template = value[1];
+
+    return ngx_http_testcookie_compile_refresh_template(cf, ucf);
+}
+
+/*
+ * The page is read once, when nginx reads its configuration, and then works
+ * exactly like the string of testcookie_refresh_template: the same variables,
+ * the same field, so the two directives cannot be both set on one level and
+ * "testcookie_refresh_template none" switches off an inherited file.
+ */
+static char *
+ngx_http_testcookie_refresh_template_file_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+{
+    char                       *rv;
+    u_char                     *buf;
+    size_t                      size;
+    ssize_t                     n;
+    ngx_fd_t                    fd;
+    ngx_str_t                  *value, name;
+    ngx_file_t                  file;
+    ngx_file_info_t             fi;
+    ngx_http_testcookie_conf_t *ucf = conf;
+
+    if (ucf->refresh_template.data) {
+        return "is duplicate";
+    }
+
+    value = cf->args->elts;
+    name = value[1];
+
+    if (ngx_conf_full_name(cf->cycle, &name, 1) != NGX_OK) {
+        return NGX_CONF_ERROR;
+    }
+
+    fd = ngx_open_file(name.data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
+    if (fd == NGX_INVALID_FILE) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
+                           ngx_open_file_n " \"%s\" failed", name.data);
+        return NGX_CONF_ERROR;
+    }
+
+    rv = NGX_CONF_ERROR;
+
+    if (ngx_fd_info(fd, &fi) == NGX_FILE_ERROR) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
+                           ngx_fd_info_n " \"%s\" failed", name.data);
+        goto done;
+    }
+
+    size = (size_t) ngx_file_size(&fi);
+
+    if (size == 0) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "refresh template file \"%s\" is empty", name.data);
+        goto done;
+    }
+
+    buf = ngx_pnalloc(cf->pool, size);
+    if (buf == NULL) {
+        goto done;
+    }
+
+    ngx_memzero(&file, sizeof(ngx_file_t));
+    file.fd = fd;
+    file.name = name;
+    file.log = cf->log;
+
+    n = ngx_read_file(&file, buf, size, 0);
+    if (n == NGX_ERROR) {
+        goto done;
+    }
+
+    if ((size_t) n != size) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           ngx_read_file_n " \"%s\" returned only %z bytes instead of %uz",
+                           name.data, n, size);
+        goto done;
+    }
+
+    ucf->refresh_template.len = size;
+    ucf->refresh_template.data = buf;
+
+    rv = ngx_http_testcookie_compile_refresh_template(cf, ucf);
+
+    if (rv != NGX_CONF_OK) {
+        ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                           "in refresh template file \"%s\"", name.data);
+    }
+
+done:
+
+    if (ngx_close_file(fd) == NGX_FILE_ERROR) {
+        ngx_log_error(NGX_LOG_ALERT, cf->log, ngx_errno,
+                      ngx_close_file_n " \"%s\" failed", name.data);
+    }
+
+    return rv;
+}
+
+static char *
+ngx_http_testcookie_compile_refresh_template(ngx_conf_t *cf, ngx_http_testcookie_conf_t *ucf)
+{
+    ngx_http_script_compile_t   sc;
+    ngx_uint_t                  n;
 
     n = ngx_http_script_variables_count(&ucf->refresh_template);
     if (n == 0) {

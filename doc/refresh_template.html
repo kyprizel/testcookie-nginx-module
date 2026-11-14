@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<title>Checking your browser</title>
+</head>
+<body>
+<p>Checking your browser&hellip;</p>
+<noscript><p>Please turn on JavaScript and cookies, then reload the page.</p></noscript>
+<script src="/aes.min.js"></script>
+<script>
+(function () {
+    function toBytes(hex) {
+        var bytes = [];
+        for (var i = 0; i < hex.length; i += 2) {
+            bytes.push(parseInt(hex.substr(i, 2), 16));
+        }
+        return bytes;
+    }
+
+    function toHex(bytes) {
+        var hex = "";
+        for (var i = 0; i < bytes.length; i++) {
+            hex += (bytes[i] < 16 ? "0" : "") + bytes[i].toString(16);
+        }
+        return hex;
+    }
+
+    var key = toBytes("$testcookie_enc_key"),
+        iv = toBytes("$testcookie_enc_iv"),
+        value = toBytes("$testcookie_enc_set");
+
+    document.cookie = "BPC=" + toHex(slowAES.decrypt(value, 2, key, iv)) + "; path=/";
+    location.replace("$testcookie_nexturl");
+})();
+</script>
+</body>
+</html>
