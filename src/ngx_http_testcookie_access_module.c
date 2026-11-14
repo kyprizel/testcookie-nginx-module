@@ -632,7 +632,10 @@ ngx_http_testcookie_handler(ngx_http_request_t *r)
                             l = i;
                         }
                     j = 0;
-                } else if ((j == 0) && (i < args->len-look->len)) {
+                } else if ((j == 0) && (args->len > look->len)
+                           && (i < args->len - look->len))
+                {
+                    /* "name=" must fit: args->len - look->len wraps on size_t otherwise */
                     if ((ngx_strncmp(args->data+i, look->data, look->len) == 0)
                         && (args->data[i+look->len] == '=')) {
                             j = i+look->len+1;
