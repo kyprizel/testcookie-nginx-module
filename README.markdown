@@ -95,6 +95,84 @@ Secret string, used in challenge cookie computation, should be 32 bytes or more,
 better to be long but static to prevent cookie reset for legitimate users every server restart.
 If set to *"random"* - new secret will be generated every server restart, not recomended(all cookies with previous key will be invalid),
 
+testcookie_previous_secret
+--------------------------
+**syntax:** *testcookie_previous_secret &lt;string&gt;*
+
+**default:** *none*
+
+**context:** *http, server, location*
+
+A cookie that does not match *testcookie_secret* is checked against this secret too. It lets you change the secret
+without challenging every client again: put the old secret here, the new one in *testcookie_secret*, reload nginx.
+New cookies are always made with *testcookie_secret*. Should be 32 bytes or more, cannot be *random*.
+
+With *testcookie_lifetime* the old secret can go one lifetime after the change, when every cookie made with it has
+expired. Without a lifetime cookies never expire, and the old secret keeps them passing for as long as it stays here.
+
+testcookie_lifetime
+-------------------
+**syntax:** *testcookie_lifetime &lt;time&gt;|off*
+
+**default:** *off*
+
+**context:** *http, server, location*
+
+How long a cookie passes. With a lifetime the cookie carries its own expiry and is signed: 4 bytes of expiry time
+followed by the first 12 bytes of HMAC-SHA256(secret, expiry | session). It is still 32 hex digits, so templates,
+*$testcookie_set*, *$testcookie_enc_set* and the AES page work as they did. Without a lifetime (the default) the cookie
+is md5(session | secret) and passes for as long as the secret and the session stay the same.
+
+* A client is challenged again when its cookie expires. Every cookie expires one lifetime after its own challenge, so
+  clients are not all challenged again at the same moment.
+* A request that passes does not extend the cookie: a browser sees the challenge once per lifetime.
+* The expiry is checked against the server clock: servers behind one balancer need the same secret and close clocks.
+* A cookie passes until the expiry it carries, so a shorter lifetime applies to new cookies. To end the old ones at
+  once, change the secret (without *testcookie_previous_secret*).
+* Turning the lifetime on or off challenges every client once: the two kinds of cookie do not pass for each other.
+* *testcookie_expires* still only tells the browser how long to keep the cookie. Make it at least the lifetime, or
+  leave it a session cookie.
+* Needs *testcookie_secret*.
+* Costs about as much as the md5 cookie: the HMAC key is prepared when nginx reads its configuration.
+
+It stops a cookie from one solved challenge being used for days or months. It does not stop a script that solves the
+challenge again after the cookie expires.
+
+Decoy: $testcookie_decoy, $testcookie_enc_decoy, $testcookie_trapped
+--------------------------------------------------------------------
+A script that solves the challenge without running the page reads the values out of it by pattern. The decoy is a
+second value that looks like the cookie, for the page to carry where a browser never runs it and such a script finds it
+first. A browser never sends the decoy back: a client that does has read the page without running it.
+
+    $testcookie_decoy     - the decoy, 32 hex digits, like $testcookie_set
+    $testcookie_enc_decoy - the decoy encrypted with the key and iv of the page, like $testcookie_enc_set
+    $testcookie_trapped   - 1 if the client sent the decoy back as its cookie, 0 otherwise
+
+The decoy comes from *testcookie_secret* with a key of its own, so it cannot be told from the cookie without the
+secret. It is fixed for a session like the md5 cookie; with *testcookie_lifetime* it carries the expiry of the real
+cookie and changes with it. A decoy is trapped even after its expiry. There is no decoy without *testcookie_secret*,
+for a whitelisted client, or with the module off. The variables cost nothing when they are not used.
+
+A client that sends the decoy is challenged again like any client without a valid cookie. What else happens is up to
+the configuration, for example:
+
+    location / {
+        testcookie on;
+        if ($testcookie_trapped = 1) {
+            return 444;
+        }
+    }
+
+    access_log /var/log/nginx/trapped.log combined if=$testcookie_trapped;
+
+Put the decoy before the real values, where the page never uses it: in a comment, in a script that never runs, in a
+function that is never called. For the page in the example below, the start of its second script could be:
+
+    <script>/* var a=toNumbers("$testcookie_enc_key"),b=toNumbers("$testcookie_enc_iv"),c=toNumbers("$testcookie_enc_decoy"); */
+
+The decoy catches scripts that take the first match; a script that runs the page in a JavaScript engine, or is adapted
+to skip the decoy, is not caught. Change where the decoy sits from time to time.
+
 testcookie_session
 ------------------
 **syntax:** *testcookie_session &lt;variable&gt;*
