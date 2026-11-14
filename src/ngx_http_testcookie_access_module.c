@@ -1119,7 +1119,8 @@ ngx_http_testcookie_set_variable(ngx_http_request_t *r,
     ctx = ngx_http_get_module_ctx(r, ngx_http_testcookie_access_module);
     if (ctx == NULL || ctx->uid_set == NULL) {
         ctx = ngx_http_testcookie_get_uid(r, conf);
-        if (ctx == NULL) {
+        /* a whitelisted client passes before any cookie is computed */
+        if (ctx == NULL || ctx->uid_set == NULL) {
             v->not_found = 1;
             return NGX_OK;
         }
