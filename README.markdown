@@ -217,6 +217,34 @@ testcookie_refresh_status
 
 Use custom HTTP status code when serving html.
 
+testcookie_refresh_template_file
+--------------------------------
+**syntax:** *testcookie_refresh_template_file &lt;path&gt;*
+
+**default:** *none*
+
+**context:** *http, server, location*
+
+The same as *testcookie_refresh_template*, with the page read from a file instead of written in one line of the
+configuration. A relative path is taken from the directory of nginx.conf, like *include*. The file is read when nginx
+reads its configuration: after changing the page, reload nginx.
+
+The page has the same variables, and a level has either the string or the file, not both. A nested level may set its
+own string or file, and *testcookie_refresh_template none* there brings back the default meta refresh page.
+
+nginx has no escape for the dollar sign: every *$* in the file starts a variable, and an unknown or broken name stops
+nginx from loading the configuration. If the page needs a literal *$* (jQuery, template strings), define a variable
+that holds one and write *${dollar}* in the page:
+
+    geo $dollar {
+        default "$";
+    }
+
+A working page for the encrypted cookie is in [doc/refresh_template.html](doc/refresh_template.html): it needs
+*testcookie_name BPC*, *testcookie_redirect_via_refresh on*, *testcookie_refresh_encrypt_cookie on* and SlowAES served
+from */aes.min.js* by a location with *testcookie off*. Writing a page of your own is worth it: a script made to solve
+the stock page by pattern does not understand a different one, though it takes little to adapt one to your page.
+
 
 testcookie_deny_keepalive
 -------------------------
