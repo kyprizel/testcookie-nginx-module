@@ -138,6 +138,41 @@ is md5(session | secret) and passes for as long as the secret and the session st
 It stops a cookie from one solved challenge being used for days or months. It does not stop a script that solves the
 challenge again after the cookie expires.
 
+Decoy: $testcookie_decoy, $testcookie_enc_decoy, $testcookie_trapped
+--------------------------------------------------------------------
+A script that solves the challenge without running the page reads the values out of it by pattern. The decoy is a
+second value that looks like the cookie, for the page to carry where a browser never runs it and such a script finds it
+first. A browser never sends the decoy back: a client that does has read the page without running it.
+
+    $testcookie_decoy     - the decoy, 32 hex digits, like $testcookie_set
+    $testcookie_enc_decoy - the decoy encrypted with the key and iv of the page, like $testcookie_enc_set
+    $testcookie_trapped   - 1 if the client sent the decoy back as its cookie, 0 otherwise
+
+The decoy comes from *testcookie_secret* with a key of its own, so it cannot be told from the cookie without the
+secret. It is fixed for a session like the md5 cookie; with *testcookie_lifetime* it carries the expiry of the real
+cookie and changes with it. A decoy is trapped even after its expiry. There is no decoy without *testcookie_secret*,
+for a whitelisted client, or with the module off. The variables cost nothing when they are not used.
+
+A client that sends the decoy is challenged again like any client without a valid cookie. What else happens is up to
+the configuration, for example:
+
+    location / {
+        testcookie on;
+        if ($testcookie_trapped = 1) {
+            return 444;
+        }
+    }
+
+    access_log /var/log/nginx/trapped.log combined if=$testcookie_trapped;
+
+Put the decoy before the real values, where the page never uses it: in a comment, in a script that never runs, in a
+function that is never called. For the page in the example below, the start of its second script could be:
+
+    <script>/* var a=toNumbers("$testcookie_enc_key"),b=toNumbers("$testcookie_enc_iv"),c=toNumbers("$testcookie_enc_decoy"); */
+
+The decoy catches scripts that take the first match; a script that runs the page in a JavaScript engine, or is adapted
+to skip the decoy, is not caught. Change where the decoy sits from time to time.
+
 testcookie_session
 ------------------
 **syntax:** *testcookie_session &lt;variable&gt;*
