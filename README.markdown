@@ -95,6 +95,49 @@ Secret string, used in challenge cookie computation, should be 32 bytes or more,
 better to be long but static to prevent cookie reset for legitimate users every server restart.
 If set to *"random"* - new secret will be generated every server restart, not recomended(all cookies with previous key will be invalid),
 
+testcookie_previous_secret
+--------------------------
+**syntax:** *testcookie_previous_secret &lt;string&gt;*
+
+**default:** *none*
+
+**context:** *http, server, location*
+
+A cookie that does not match *testcookie_secret* is checked against this secret too. It lets you change the secret
+without challenging every client again: put the old secret here, the new one in *testcookie_secret*, reload nginx.
+New cookies are always made with *testcookie_secret*. Should be 32 bytes or more, cannot be *random*.
+
+With *testcookie_lifetime* the old secret can go one lifetime after the change, when every cookie made with it has
+expired. Without a lifetime cookies never expire, and the old secret keeps them passing for as long as it stays here.
+
+testcookie_lifetime
+-------------------
+**syntax:** *testcookie_lifetime &lt;time&gt;|off*
+
+**default:** *off*
+
+**context:** *http, server, location*
+
+How long a cookie passes. With a lifetime the cookie carries its own expiry and is signed: 4 bytes of expiry time
+followed by the first 12 bytes of HMAC-SHA256(secret, expiry | session). It is still 32 hex digits, so templates,
+*$testcookie_set*, *$testcookie_enc_set* and the AES page work as they did. Without a lifetime (the default) the cookie
+is md5(session | secret) and passes for as long as the secret and the session stay the same.
+
+* A client is challenged again when its cookie expires. Every cookie expires one lifetime after its own challenge, so
+  clients are not all challenged again at the same moment.
+* A request that passes does not extend the cookie: a browser sees the challenge once per lifetime.
+* The expiry is checked against the server clock: servers behind one balancer need the same secret and close clocks.
+* A cookie passes until the expiry it carries, so a shorter lifetime applies to new cookies. To end the old ones at
+  once, change the secret (without *testcookie_previous_secret*).
+* Turning the lifetime on or off challenges every client once: the two kinds of cookie do not pass for each other.
+* *testcookie_expires* still only tells the browser how long to keep the cookie. Make it at least the lifetime, or
+  leave it a session cookie.
+* Needs *testcookie_secret*.
+* Costs about as much as the md5 cookie: the HMAC key is prepared when nginx reads its configuration.
+
+It stops a cookie from one solved challenge being used for days or months. It does not stop a script that solves the
+challenge again after the cookie expires.
+
 testcookie_session
 ------------------
 **syntax:** *testcookie_session &lt;variable&gt;*
