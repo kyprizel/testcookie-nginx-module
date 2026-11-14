@@ -1,0 +1,64 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: nginx ${{ matrix.nginx }} ${{ matrix.variant }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # One version per cookie-parsing branch of the module and the current releases:
+        # < 1.23.0, 1.23.0 - 1.29.5, >= 1.29.6 (stable and mainline).
+        nginx: [1.22.1, 1.26.3, 1.28.3, 1.30.6, 1.31.8]
+        variant: [plain]
+        include:
+          # AddressSanitizer; NGX_DEBUG_PALLOC makes every pool allocation its own malloc,
+          # otherwise ASAN cannot see an overrun inside an nginx pool.
+          - nginx: 1.31.8
+            variant: asan
+            cc_opt: -fsanitize=address -fno-omit-frame-pointer -DNGX_DEBUG_PALLOC=1
+            ld_opt: -fsanitize=address
+    env:
+      ASAN_OPTIONS: detect_leaks=0:log_path=/tmp/asan/asan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build and test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libpcre2-dev zlib1g-dev libssl-dev cpanminus
+          sudo cpanm --notest Test::Nginx
+
+      - name: Fetch nginx ${{ matrix.nginx }}
+        run: curl -fsSL "https://nginx.org/download/nginx-${{ matrix.nginx }}.tar.gz" | tar xz -C "$RUNNER_TEMP"
+
+      - name: Build nginx with the module (static, warnings are errors)
+        working-directory: ${{ runner.temp }}/nginx-${{ matrix.nginx }}
+        run: |
+          ./configure --with-debug --with-http_ssl_module --with-http_v2_module \
+            --add-module="$GITHUB_WORKSPACE" \
+            --with-cc-opt="-Werror ${{ matrix.cc_opt }}" --with-ld-opt="${{ matrix.ld_opt }}"
+          make -j"$(nproc)"
+
+      - name: Build the module as a dynamic module
+        if: matrix.variant == 'plain'
+        run: |
+          cp -R "$RUNNER_TEMP/nginx-${{ matrix.nginx }}" "$RUNNER_TEMP/dyn"
+          cd "$RUNNER_TEMP/dyn"
+          ./configure --with-compat --with-http_ssl_module --add-dynamic-module="$GITHUB_WORKSPACE" --with-cc-opt=-Werror
+          make -j"$(nproc)" modules
+          test -f objs/ngx_http_testcookie_access_module.so
+
+      - name: Run tests
+        run: |
+          mkdir -p /tmp/asan
+          TEST_NGINX_BINARY="$RUNNER_TEMP/nginx-${{ matrix.nginx }}/objs/nginx" prove -r t/
+
+      - name: No AddressSanitizer reports
+        if: always() && matrix.variant == 'asan'
+        run: |
+          if [ -n "$(ls -A /tmp/asan 2>/dev/null)" ]; then cat /tmp/asan/*; exit 1; fi
